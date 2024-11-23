@@ -1,12 +1,10 @@
-# el código funciona, lo único que hay que está regu es que el mapa no se genera bien cuando es un recorrido hacia atrás
-# el resto creo que funciona todo y luego ya sería añadir los parametros que querais, creo que indicar que se hace un transbordo y lo que se tarda en el ransbordo estaría bien y cambiar la interfaz.
-
 import tkinter as tk
 from tkinter import ttk, messagebox
+from tkcalendar import Calendar
+from datetime import datetime, timedelta
 import folium
 import networkx as nx
 import webbrowser
-from math import radians, sin, cos, sqrt, atan2
 
 # Coordenadas de las estaciones
 LISTA_COORDENADAS = {
@@ -58,6 +56,13 @@ LISTA_COORDENADAS = {
     },
 }
 
+
+# Festivos de Buenos Aires
+FESTIVOS = [
+    "01-01", "24-03", "02-04", "01-05", "25-05", "20-06", "09-07", "17-08",
+    "12-10", "20-11", "08-12", "25-12"
+]
+
 # Grafo de la red
 grafo = nx.Graph()
 
@@ -65,79 +70,127 @@ grafo = nx.Graph()
 for linea, estaciones in LISTA_COORDENADAS.items():
     estaciones_lista = list(estaciones.keys())
     for i in range(len(estaciones_lista) - 1):
-        grafo.add_edge(estaciones_lista[i], estaciones_lista[i + 1], weight=500)  # Peso arbitrario para ejemplo
+        grafo.add_edge(estaciones_lista[i], estaciones_lista[i + 1], weight=500)
 
 # Agregar transbordos entre líneas
 transbordos = [
     ("Lima", "Carlos Pellegrini", 200),
     ("Diagonal Norte", "Bolivar", 300),
     ("Leandro N. Alem", "Retiro", 400),
-    ("Independencia", "Carlos Pellegrini", 250),  # Ejemplo de transbordo adicional
-    ("Moreno", "Avenida de Mayo", 150),           # Otro transbordo entre líneas
-    ("Lima", "Avenida de Mayo", 100),             # Transbordo Línea A y Línea C
-    ("Catedral", "Avenida de Mayo", 150),         # Transbordo Línea D y Línea C
-    ("Plaza de Mayo", "Avenida de Mayo", 100),    # Transbordo Línea A y Línea C
-    ("Carlos Pellegrini", "Diagonal Norte", 200), # Transbordo Línea B y Línea C
-    ("Catedral", "Bolivar", 150),                # Transbordo Línea D y Línea E
-    ("Independencia", "Moreno", 250),            # Transbordo Línea C y Línea E
-    ("Pichincha", "Entre Ríos", 180),            # Transbordo Línea E y Línea C
-    ("Humberto 1º", "Independencia", 120),       # Transbordo Línea H y Línea C
-    ("9 de Julio", "Diagonal Norte", 100),        # Transbordo Línea D y Línea C
-    ("Retiro", "Catedral", 200),                 # Transbordo Línea C y Línea D
-    ("Facultad de Medicina", "9 de Julio", 250), # Transbordo Línea D y Línea B
-    ("Leandro N. Alem", "9 de Julio", 180),       # Transbordo Línea B y Línea D
-    ("Callao", "Facultad de Medicina", 300),     # Transbordo Línea B y Línea D
-    ("Catedral", "Bolivar", 180),                # Transbordo Línea D y Línea E
-    ("San José", "Avenida de Mayo", 350),        # Transbordo Línea E y Línea C
+    ("Independencia", "Carlos Pellegrini", 250),
+    ("Moreno", "Avenida de Mayo", 150),
+    ("Lima", "Avenida de Mayo", 100),
+    ("Catedral", "Avenida de Mayo", 150),
+    ("Plaza de Mayo", "Avenida de Mayo", 100),
+    ("Carlos Pellegrini", "Diagonal Norte", 200),
+    ("Catedral", "Bolivar", 150),
+    ("Independencia", "Moreno", 250),
 ]
 
 for origen, destino, peso in transbordos:
     grafo.add_edge(origen, destino, weight=peso)
+
+# Función para calcular si es un día festivo
+def es_festivo(fecha):
+    return fecha.strftime("%d-%m") in FESTIVOS
+
+# Función para detectar la línea de una estación
+def detectar_linea(estacion):
+    for linea, estaciones in LISTA_COORDENADAS.items():
+        if estacion in estaciones:
+            return linea
+    return None
 
 # Función para calcular la ruta
 def calcular_ruta():
     estacion_inicio = estacion_origen.get()
     estacion_destino_var = estacion_destino.get()
 
-    if estacion_inicio not in grafo or estacion_destino_var not in grafo:
-        messagebox.showerror("Error", "Las estaciones ingresadas no son válidas.")
+    # Validar si las estaciones están seleccionadas
+    if not estacion_inicio or not estacion_destino_var:
+        messagebox.showerror("Error", "Te olvidaste de seleccionar estación.")
+        return
+
+    # Verificar si las estaciones de origen y destino son las mismas
+    if estacion_inicio == estacion_destino_var:
+        messagebox.showinfo("Ruta no necesaria", "Ya estás en la estación seleccionada.")
+        return
+
+    # Validar entrada de hora y minutos
+    hora = hora_var.get()
+    minuto = minuto_var.get()
+    if not hora and not minuto:
+        ahora = datetime.now()
+        hora = ahora.hour
+        minuto = ahora.minute
+        messagebox.showinfo("Aviso", "Se ha calculado el viaje en la hora actual. Te recomendamos ingresar una hora si deseas calcular un viaje en un momento específico.")
+    elif (not hora and minuto) or (hora and not minuto):
+        messagebox.showerror("Error", "Hora incompleta. Debes proporcionar tanto la hora como los minutos.")
         return
 
     try:
-        # Cálculo de la ruta más corta
+        # Calcular fecha y hora del viaje
+        fecha_viaje = datetime.strptime(fecha_var.get(), "%d-%m-%Y")
+        hora_viaje = datetime.strptime(f"{hora}:{minuto}", "%H:%M").time()
+
+        # Validar si es festivo
+        if es_festivo(fecha_viaje):
+            messagebox.showinfo("Aviso", "Es un día festivo. Los horarios y servicios podrían verse modificados.")
+
+        # Calcular la ruta
         ruta = nx.shortest_path(grafo, source=estacion_inicio, target=estacion_destino_var, weight="weight")
         distancia_total = nx.shortest_path_length(grafo, source=estacion_inicio, target=estacion_destino_var, weight="weight")
-        mostrar_mapa(ruta, distancia_total)
-        mostrar_detalles(ruta, distancia_total)
+
+        # Detectar transbordos
+        transbordos = []
+        linea_anterior = detectar_linea(ruta[0])
+        for i, estacion in enumerate(ruta[1:], start=1):
+            linea_actual = detectar_linea(estacion)
+            if linea_actual != linea_anterior:
+                transbordos.append((ruta[i - 1], estacion))
+                linea_anterior = linea_actual
+
+        # Calcular tiempo estimado
+        datetime_viaje = datetime.combine(fecha_viaje, hora_viaje)
+        tiempo_total = timedelta(minutes=distancia_total / 500 * 60)
+        hora_llegada = datetime_viaje + tiempo_total
+
+        mostrar_mapa(ruta)
+        mostrar_detalles(ruta, distancia_total, hora_llegada, transbordos)
     except nx.NetworkXNoPath:
         messagebox.showerror("Error", "No existe una ruta entre las estaciones seleccionadas.")
 
 # Función para mostrar detalles de la ruta
-def mostrar_detalles(ruta, distancia_total):
-    detalles = "Ruta:\n"
-    for i in range(len(ruta) - 1):
-        detalles += f"{ruta[i]} -> "
-        if (ruta[i] in LISTA_COORDENADAS["LINEA_A"] and ruta[i + 1] in LISTA_COORDENADAS["LINEA_B"]) or \
-           (ruta[i] in LISTA_COORDENADAS["LINEA_B"] and ruta[i + 1] in LISTA_COORDENADAS["LINEA_C"]):
-            detalles += " (Transbordo)\n"
-    detalles += f"{ruta[-1]}\n\n"
+def mostrar_detalles(ruta, distancia_total, hora_llegada, transbordos):
+    detalles = f"Ruta: {' -> '.join(ruta)}\n\n"
     detalles += f"Distancia total: {distancia_total} metros\n"
     detalles += f"Tiempo estimado: {distancia_total / 500:.2f} minutos\n"
+    detalles += f"Hora estimada de llegada: {hora_llegada.strftime('%H:%M')}\n"
+
+    if transbordos:
+        detalles += "\nTransbordos:\n"
+        for origen, destino in transbordos:
+            detalles += f"  - De {origen} a {destino}\n"
+
     messagebox.showinfo("Detalles de la ruta", detalles)
 
 # Función para mostrar el mapa
-def mostrar_mapa(ruta, distancia_total):
-    inicio_coord = LISTA_COORDENADAS["LINEA_A"].get(ruta[0], [0, 0])
-    mapa = folium.Map(location=inicio_coord, zoom_start=14)
-
+def mostrar_mapa(ruta):
     coords = []
     for estacion in ruta:
         for linea, estaciones in LISTA_COORDENADAS.items():
             if estacion in estaciones:
                 coords.append(estaciones[estacion])
-                folium.Marker(estaciones[estacion], popup=estacion).add_to(mapa)
                 break
 
+    if not coords:
+        messagebox.showerror("Error", "No se pudieron encontrar coordenadas para algunas estaciones.")
+        return
+
+    inicio_coord = coords[0]
+    mapa = folium.Map(location=inicio_coord, zoom_start=14)
+    for estacion, coord in zip(ruta, coords):
+        folium.Marker(coord, popup=estacion).add_to(mapa)
     folium.PolyLine(coords, color="blue", weight=5).add_to(mapa)
     mapa.save("ruta_metro.html")
     webbrowser.open("ruta_metro.html")
@@ -149,6 +202,13 @@ ventana.title("Calculadora de rutas de metro")
 # Variables de las estaciones
 estacion_origen = tk.StringVar()
 estacion_destino = tk.StringVar()
+fecha_var = tk.StringVar()
+hora_var = tk.StringVar()
+minuto_var = tk.StringVar()
+
+# Establecer la fecha actual como valor inicial
+fecha_actual = datetime.now().strftime("%d-%m-%Y")
+fecha_var.set(fecha_actual)
 
 # Widgets
 ttk.Label(ventana, text="Estación de origen:").grid(row=0, column=0, padx=10, pady=10)
@@ -159,11 +219,22 @@ ttk.Label(ventana, text="Estación de destino:").grid(row=1, column=0, padx=10, 
 destino_menu = ttk.Combobox(ventana, textvariable=estacion_destino, values=list(grafo.nodes()))
 destino_menu.grid(row=1, column=1, padx=10, pady=10)
 
-# Botón para calcular la ruta
+# Selector de fecha
+ttk.Label(ventana, text="Fecha de viaje:").grid(row=2, column=0, padx=10, pady=10)
+calendario = Calendar(ventana, date_pattern="dd-mm-yyyy", textvariable=fecha_var)
+calendario.grid(row=2, column=1, padx=10, pady=10)
+
+# Selector de hora y minutos
+ttk.Label(ventana, text="Hora de viaje:").grid(row=3, column=0, padx=10, pady=10)
+horas = [f"{h:02d}" for h in range(24)]
+minutos = [f"{m:02d}" for m in range(60)]
+hora_menu = ttk.Combobox(ventana, textvariable=hora_var, values=horas, width=5)
+hora_menu.grid(row=3, column=1, padx=10, pady=5, sticky="w")
+minuto_menu = ttk.Combobox(ventana, textvariable=minuto_var, values=minutos, width=5)
+minuto_menu.grid(row=3, column=1, padx=10, pady=5, sticky="e")
+
 calcular_btn = ttk.Button(ventana, text="Calcular Ruta", command=calcular_ruta)
-calcular_btn.grid(row=2, column=0, columnspan=2, pady=20)
+calcular_btn.grid(row=4, column=0, columnspan=2, pady=20)
 
 # Iniciar la interfaz gráfica
 ventana.mainloop()
-
-
