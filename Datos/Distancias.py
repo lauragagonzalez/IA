@@ -5,8 +5,7 @@ DISTANCIAS = {
         ("Pasco", "Congreso", 519.97),
         ("Congreso", "Sáenz Peña", 549.30),
         ("Sáenz Peña", "Lima", 380.56),
-        ("Lima", "Avenida de mayo", 169.17),
-        ("Avenida de mayo", "Piedras", 191.72),
+        ("Lima", "Piedras", 360.89),
         ("Piedras", "Perú", 339.32),
         ("Perú", "Plaza de Mayo", 312.92)
     ],
@@ -31,8 +30,7 @@ DISTANCIAS = {
         ("Facultad de Medicina", "Callao", 497.41),
         ("Callao", "Tribunales", 749.65),
         ("Tribunales", "9 de Julio", 508.97),
-        ("9 de Julio", "Diagonal Norte", 69.22),
-        ("Diagonal Norte", "catedral", 570.85)
+        ("9 de Julio", "Catedral", 640.07)
     ],
     "LINEA_E":[
         ("Pichincha", "Entre Ríos", 514.80),
