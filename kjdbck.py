@@ -67,9 +67,9 @@ transbordos = [
 # Función para colorear los nodos según la línea a la que pertenecen
 # Agregamos los nodos y las aristas a G
 LINEA_A = {"Alberti", "Pasco", "Congreso", "Sáenz Peña", "Lima", "Piedras", "Perú", "Plaza de Mayo"}
-LINEA_B = {"Pasteur", "Callao", "Uruguay", "Carlos Pellegrini", "Florida", "Leandro N. Alem"}
+LINEA_B = {"Pasteur", "Callao_B", "Uruguay", "Carlos Pellegrini", "Florida", "Leandro N. Alem"}
 LINEA_C = {"Constitución", "San Juan", "Independencia_C", "Moreno","Avenida de Mayo", "Diagonal Norte", "Lavalle", "General San Martin", "Retiro"}
-LINEA_D = {"Facultad de Medicina", "Callao", "Tribunales", "9 de Julio", "Diagonal Norte", "Catedral"}
+LINEA_D = {"Facultad de Medicina", "Callao_D", "Tribunales", "9 de Julio", "Diagonal Norte", "Catedral"}
 LINEA_E = {"Pichincha", "Entre Ríos", "San José", "Independencia_E", "Belgrano", "Bolívar"}
 
 # lista de estaciones
