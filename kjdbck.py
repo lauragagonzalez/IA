@@ -99,14 +99,83 @@ transbordos = [
 # Agregar las aristas entre las estaciones de transbordo
 for estacion1, estacion2 in transbordos:
     if estacion1 in G.nodes and estacion2 in G.nodes:
-        G.add_edge(estacion1, estacion2, weight=0)  # Peso bajo para conexiones cercanas
-# Identificar las aristas de transbordo
-transbordo_edges = [(e1, e2) for e1, e2 in G.edges if (e1, e2) in transbordos or (e2, e1) in transbordos]
+        G.add_edge(estacion1, estacion2, weight=0)  # Peso a definir
+
+
+
+
+# Función para colorear los nodos según la línea a la que pertenecen
+# Agregamos los nodos y las aristas a G
+LINEA_A = {"Alberti","Pasco","Congreso","Sáenz Peña","Lima","Piedras", "Perú","Plaza de Mayo"}
+LINEA_B = {"Pasteur","Callao","Uruguay","Carlos Pellegrini","Florida","Leandro N. Alem"}
+LINEA_C = {"Constitución","San Juan","Independencia","Moreno","Avenida de Mayo","Diagonal Norte","Lavalle","General San Martin","Retiro"}
+LINEA_D = {"Facultad de Medicina","Callao","Tribunales","9 de Julio", "Diagonal Norte","Catedral"}
+LINEA_E = {"Pichincha","Entre Ríos","San José","Independencia","Belgrano","Bolívar"}
+transbordos = {"Lima", "Carlos Pellegrini", "Diagonal Norte", "Bolivar", "Avenida de Mayo", "Retiro"}
+
+def colorear_nodos(G):
+    color = []
+    estaciones_linea = [transbordos, LINEA_A, LINEA_B, LINEA_C, LINEA_D, LINEA_E]
+
+    for node in G.nodes:
+        if node in estaciones_linea[0]:
+            color.append('black')
+        elif node in estaciones_linea[1]:
+            color.append('lightblue')
+        elif node in estaciones_linea[2]:
+            color.append('red')
+        elif node in estaciones_linea[3]:
+            color.append('darkblue')
+        elif node in estaciones_linea[4]:
+            color.append('green')
+        elif node in estaciones_linea[5]:
+            color.append('purple')
+        else:
+            color.append('gray')  # Color por defecto si no se encuentra en ninguna línea
+    return color
+
+
+# Función para colorear las aristas
+def colorear_edges(G):
+    color_edge = []
+    estaciones_linea = [transbordos, LINEA_A, LINEA_B, LINEA_C, LINEA_D, LINEA_E]
+
+    for edge in G.edges:
+        if edge[0] in estaciones_linea[0] or edge[1] in estaciones_linea[0]:
+            color_edge.append('black')
+        elif edge[0] in estaciones_linea[1] or edge[1] in estaciones_linea[1]:
+            color_edge.append('lightblue')
+        elif edge[0] in estaciones_linea[2] or edge[1] in estaciones_linea[2]:
+            color_edge.append('red')
+        elif edge[0] in estaciones_linea[3] or edge[1] in estaciones_linea[3]:
+            color_edge.append('darkblue')
+        elif edge[0] in estaciones_linea[4] or edge[1] in estaciones_linea[4]:
+            color_edge.append('green')
+        elif edge[0] in estaciones_linea[5] or edge[1] in estaciones_linea[5]:
+            color_edge.append('purple')
+        else:
+            color_edge.append('gray')  # Color por defecto
+    return color_edge
+
+
+
+
+# Dibujar el grafo
+# Coloreamos los nodos y las aristas
+node_colors = colorear_nodos(G)
+edge_colors = colorear_edges(G)
 
 # Dibujar el grafo
 plt.figure(figsize=(12, 10))
-nx.draw_networkx_edges(G, pos, width=2)
-nx.draw_networkx_nodes(G, pos, node_size=500)
+
+# Dibujamos las aristas
+nx.draw_networkx_edges(G, pos, edge_color=edge_colors, width=2)
+
+# Dibujamos los nodos
+nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=500)
+
+# Dibujamos las etiquetas
 nx.draw_networkx_labels(G, pos, font_size=12)
-plt.title("Mapa de estaciones de subte")
+
 plt.show()
+
