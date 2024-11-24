@@ -42,7 +42,7 @@ LISTA_COORDENADAS = {
     "LINEA_C": {
         "Constitución": [-34.62753942668646, -58.38156121435256],
         "San Juan": [-34.622153370728164, -58.37994066311232],
-        "Independencia": [-34.6180519466846, -58.380256098860485],
+        "Independencia_C": [-34.6180519466846, -58.380256098860485],
         "Moreno": [-34.61237244698663, -58.38060876062811],
         "Avenida de Mayo": [-34.60899098423044, -58.38066790483753],
         "Diagonal Norte": [-34.60482400192541, -58.379488963667214],
@@ -61,7 +61,7 @@ LISTA_COORDENADAS = {
         "Pichincha": [-34.62304099718662, -58.39710097116426],
         "Entre Ríos": [-34.62270550042393, -58.391489789929345],
         "San José": [-34.62224639739259, -58.385224149714155],
-        "Independencia": [-34.61812318513492, -58.380224512115895],
+        "Independencia_E": [-34.61812318513492, -58.380224512115895],
         "Belgrano": [-34.6128518852584, -58.37787489702144],
         "Bolivar": [-34.60961123829135, -58.37401251606132],
     },
@@ -84,6 +84,24 @@ for linea, estaciones in LISTA_COORDENADAS.items():
 
 # Obtener posiciones de los nodos
 pos = nx.get_node_attributes(G, 'pos')
+
+# Lista de transbordos con las conexiones manuales
+transbordos = [
+    ("Lima", "Avenida de Mayo"),  # Línea A <-> Línea C
+    ("Perú", "Catedral"),         # Línea A <-> Línea D
+    ("Independencia", "Independencia"),  # Línea C <-> Línea E
+    ("Bolivar", "Perú"),          # Línea E <-> Línea A
+    ("Diagonal Norte", "Carlos Pellegrini"),  # Línea C <-> Línea B
+    ("Carlos Pellegrini", "9 de Julio"),      # Línea B <-> Línea D
+    ("9 de Julio", "Diagonal Norte"),         # Línea D <-> Línea C
+]
+
+# Agregar las aristas entre las estaciones de transbordo
+for estacion1, estacion2 in transbordos:
+    if estacion1 in G.nodes and estacion2 in G.nodes:
+        G.add_edge(estacion1, estacion2, weight=0)  # Peso bajo para conexiones cercanas
+# Identificar las aristas de transbordo
+transbordo_edges = [(e1, e2) for e1, e2 in G.edges if (e1, e2) in transbordos or (e2, e1) in transbordos]
 
 # Dibujar el grafo
 plt.figure(figsize=(12, 10))
