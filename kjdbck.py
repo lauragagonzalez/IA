@@ -68,7 +68,7 @@ transbordos = [
 # Agregamos los nodos y las aristas a G
 LINEA_A = {"Alberti", "Pasco", "Congreso", "Sáenz Peña", "Lima", "Piedras", "Perú", "Plaza de Mayo"}
 LINEA_B = {"Pasteur", "Callao_B", "Uruguay", "Carlos Pellegrini", "Florida", "Leandro N. Alem"}
-LINEA_C = {"Constitución", "San Juan", "Independencia_C", "Moreno","Avenida de Mayo", "Diagonal Norte", "Lavalle", "General San Martin", "Retiro"}
+LINEA_C = {"Constitución", "San Juan", "Independencia_C", "Moreno", "Avenida de Mayo", "Diagonal Norte", "Lavalle", "General San Martin", "Retiro"}
 LINEA_D = {"Facultad de Medicina", "Callao_D", "Tribunales", "9 de Julio", "Diagonal Norte", "Catedral"}
 LINEA_E = {"Pichincha", "Entre Ríos", "San José", "Independencia_E", "Belgrano", "Bolívar"}
 
@@ -119,7 +119,7 @@ def colorear_nodos(G, estaciones):
     return color
 
 
-def colorear_edges(G, estaciones, transbordos_list):
+def colorear_edges(G, estaciones, transbordos):
     color_edge = []
     for edge in G.edges:
         node1, node2 = edge
@@ -133,7 +133,7 @@ def colorear_edges(G, estaciones, transbordos_list):
             color_edge.append('darkblue')
         elif node1 in estaciones[3] or node2 in estaciones[3]:
             color_edge.append('green')
-        elif node1 in estaciones[4] or node2 in estaciones[4] :
+        elif node1 in estaciones[4] or node2 in estaciones[4]:
             color_edge.append('purple')
         else:
             color_edge.append('gray')  # Color por defecto
@@ -175,7 +175,8 @@ for estacion1, estacion2 in transbordos:
         G.add_edge(estacion1, estacion2, weight=0)  # Peso a definir
 
 
-# Dibujar el grafo
+# DIBUJO DEL GRAFO
+
 # Coloreamos los nodos y las aristas
 node_colors = colorear_nodos(G, estaciones_linea)
 edge_colors = colorear_edges(G, estaciones_linea, transbordos)
@@ -193,3 +194,74 @@ nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=500)
 nx.draw_networkx_labels(G, pos, font_size=12)
 
 plt.show()
+
+# CALCULO DE LA HEURÍSTICA
+
+
+def haversine_h(nodo_actual, nodo_objetivo) -> float:
+    """
+    Calculo de la distancia entre dos nodos del grafo elegidos (el nodo actual y el nodo destino) con la
+    fórmula de haversine.
+    """
+    pos_actual = G.nodes[nodo_actual]['pos']
+    pos_objetivo = G.nodes[nodo_objetivo]['pos']
+    lat1 = pos_actual[0]
+    lon1 = pos_actual[1]
+    lat2 = pos_objetivo[0]
+    lon2 = pos_objetivo[1]
+    # Convertir de grados a radianes
+    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
+
+    # Calcular las diferencias
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+
+    # Aplicar la fórmula de Haversine
+    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+
+    # Radio de la Tierra en kilómetros
+    R = 6371.0
+
+    # Calcular la distancia
+    distancia = R * c * 1000
+
+    return distancia
+
+
+"""
+def heuristica(distancia, velocidad) -> float:
+    tiempo_hasta_destino = distancia / velocidad
+    return tiempo_hasta_destino
+"""
+# hacer mañana que estoy con sueño
+
+
+def a_estrella(origen, destino, grafo):
+    """
+    Aplica el algoritmo A* para hallar el camino más corto entre el origen y el destino, devolviendo
+    además la longitud de dicho camino.
+    """
+    camino = nx.astar_path(grafo, origen, destino, heuristic=haversine_h)
+    longitud = nx.astar_path_length(grafo, origen, destino, heuristic=haversine_h)
+    print(path)
+    print(f"The path is of {length} m")
+    return camino, longitud
+
+
+# visualizacion del resultado de A*
+def visualizacion(origen, destino, grafo):
+    path = a_estrella(origen, destino, grafo)[0]
+    path_g = grafo.subgraph(path)
+    pos_path = nx.get_node_attributes(grafo, 'pos')
+    color_path = colorear_nodos(path_g, estaciones_linea)
+    color_edge_path = colorear_edges(path_g, estaciones_linea, transbordos)
+
+    nx.draw(path_g,
+            pos=pos_path,
+            node_color=color_path,
+            with_labels=True,
+            edge_color=color_edge_path,
+            font_size=5,
+            node_size=100)
+    plt.show()
