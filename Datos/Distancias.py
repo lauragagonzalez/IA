@@ -13,8 +13,8 @@ DISTANCIAS = {
         ("Pasteur", "Callao", 664.36),
         ("Callao", "Uruguay", 522.25),
         ("Uruguay", "Carlos Pellegrini", 491.78),
-        ("Carlos Pellegrini", "Lavalle Florida", 627.78),
-        ("Lavalle Florida", "Leandro N. Alem", 412.32)
+        ("Carlos Pellegrini", "Florida", 627.78),
+        ("Florida", "Leandro N. Alem", 412.32)
     ],
     "LINEA_C": [
         ("Constitución", "San Juan", 616.99),
