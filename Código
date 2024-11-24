@@ -94,8 +94,32 @@ for origen, destino, peso in transbordos:
 def es_festivo(fecha):
     return fecha.strftime("%d-%m") in FESTIVOS
 
+# Función para validar el horario del metro
+def horario_metro_operativo(fecha, hora):
+    dia_semana = fecha.weekday()  # 0=Lunes, 6=Domingo
+    inicio_operativo = None
+    fin_operativo = datetime.strptime("23:00", "%H:%M").time()
+
+    if dia_semana in [0, 1, 2, 3, 4]:  # Lunes a viernes
+        inicio_operativo = datetime.strptime("05:30", "%H:%M").time()
+    elif dia_semana == 5:  # Sábados
+        inicio_operativo = datetime.strptime("06:00", "%H:%M").time()
+    else:  # Domingos y feriados
+        inicio_operativo = datetime.strptime("08:00", "%H:%M").time()
+
+    if not (inicio_operativo <= hora <= fin_operativo):
+        return False, "El servicio de metro no está operativo en el horario seleccionado."
+    if datetime.strptime("22:30", "%H:%M").time() <= hora <= fin_operativo:
+        return True, "Aviso: Es posible que el metro cierre pronto."
+    return True, ""
+
+
 # Función para detectar la línea de una estación
 def detectar_linea(estacion):
+    """
+    Devuelve el nombre de la línea a la que pertenece una estación.
+    Si la estación no está en ninguna línea, devuelve None.
+    """
     for linea, estaciones in LISTA_COORDENADAS.items():
         if estacion in estaciones:
             return linea
@@ -109,11 +133,6 @@ def calcular_ruta():
     # Validar si las estaciones están seleccionadas
     if not estacion_inicio or not estacion_destino_var:
         messagebox.showerror("Error", "Te olvidaste de seleccionar estación.")
-        return
-
-    # Verificar si las estaciones de origen y destino son las mismas
-    if estacion_inicio == estacion_destino_var:
-        messagebox.showinfo("Ruta no necesaria", "Ya estás en la estación seleccionada.")
         return
 
     # Validar entrada de hora y minutos
@@ -133,9 +152,13 @@ def calcular_ruta():
         fecha_viaje = datetime.strptime(fecha_var.get(), "%d-%m-%Y")
         hora_viaje = datetime.strptime(f"{hora}:{minuto}", "%H:%M").time()
 
-        # Validar si es festivo
-        if es_festivo(fecha_viaje):
-            messagebox.showinfo("Aviso", "Es un día festivo. Los horarios y servicios podrían verse modificados.")
+        # Validar el horario del metro
+        operativo, mensaje_horario = horario_metro_operativo(fecha_viaje, hora_viaje)
+        if not operativo:
+            messagebox.showerror("Error", mensaje_horario)
+            return
+        elif mensaje_horario:
+            messagebox.showinfo("Aviso", mensaje_horario)
 
         # Calcular la ruta
         ruta = nx.shortest_path(grafo, source=estacion_inicio, target=estacion_destino_var, weight="weight")
@@ -150,11 +173,11 @@ def calcular_ruta():
                 transbordos.append((ruta[i - 1], estacion))
                 linea_anterior = linea_actual
 
-        # Calcular tiempo estimado
-        datetime_viaje = datetime.combine(fecha_viaje, hora_viaje)
-        tiempo_total = timedelta(minutes=distancia_total / 500 * 60)
-        hora_llegada = datetime_viaje + tiempo_total
+        # Calcular tiempo estimado de llegada
+        tiempo_total = timedelta(minutes=(distancia_total / 500) * 60)
+        hora_llegada = datetime.combine(fecha_viaje, hora_viaje) + tiempo_total
 
+        # Mostrar resultados
         mostrar_mapa(ruta)
         mostrar_detalles(ruta, distancia_total, hora_llegada, transbordos)
     except nx.NetworkXNoPath:
@@ -225,7 +248,7 @@ calendario = Calendar(ventana, date_pattern="dd-mm-yyyy", textvariable=fecha_var
 calendario.grid(row=2, column=1, padx=10, pady=10)
 
 # Selector de hora y minutos
-ttk.Label(ventana, text="Hora de viaje:").grid(row=3, column=0, padx=10, pady=10)
+ttk.Label(ventana, text="Hora de salida:").grid(row=3, column=0, padx=10, pady=10)
 horas = [f"{h:02d}" for h in range(24)]
 minutos = [f"{m:02d}" for m in range(60)]
 hora_menu = ttk.Combobox(ventana, textvariable=hora_var, values=horas, width=5)
