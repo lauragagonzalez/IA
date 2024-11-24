@@ -2,22 +2,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from math import radians, sin, cos, sqrt, atan2
 
-# Grafo
-G = nx.Graph()
-
-# Función Haversine
-def haversine(lat1, lon1, lat2, lon2):
-    R = 6371e3  # Radio de la Tierra en metros
-    phi1, phi2 = radians(lat1), radians(lat2)
-    dphi = radians(lat2 - lat1)
-    dlambda = radians(lon2 - lon1)
-    a = sin(dphi / 2) ** 2 + cos(phi1) * cos(phi2) * sin(dlambda / 2) ** 2
-    c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    return R * c
-
-# Función para calcular la distancia entre dos coordenadas
-def distancia(coordenadas_1, coordenadas_2) -> float:
-    return haversine(coordenadas_1[0], coordenadas_1[1], coordenadas_2[0], coordenadas_2[1])
+# VARIABLES Y DATOS
 
 # Coordenadas de las estaciones
 LISTA_COORDENADAS = {
@@ -63,14 +48,107 @@ LISTA_COORDENADAS = {
         "San José": [-34.62224639739259, -58.385224149714155],
         "Independencia_E": [-34.61812318513492, -58.380224512115895],
         "Belgrano": [-34.6128518852584, -58.37787489702144],
-        "Bolivar": [-34.60961123829135, -58.37401251606132],
+        "Bolívar": [-34.60961123829135, -58.37401251606132],
     },
 }
+
+# Lista de transbordos con las conexiones manuales
+transbordos = [
+    ("Lima", "Avenida de Mayo"),                # Línea A <-> Línea C
+    ("Perú", "Catedral"),                       # Línea A <-> Línea D
+    ("Independencia_C", "Independencia_E"),     # Línea C <-> Línea E
+    ("Bolívar", "Perú"),                        # Línea E <-> Línea A
+    ("Bolívar", "Catedral"),                    # Línea E <-> Línea D
+    ("Diagonal Norte", "Carlos Pellegrini"),    # Línea C <-> Línea B
+    ("Carlos Pellegrini", "9 de Julio"),        # Línea B <-> Línea D
+    ("9 de Julio", "Diagonal Norte"),           # Línea D <-> Línea C
+]
+
+# Función para colorear los nodos según la línea a la que pertenecen
+# Agregamos los nodos y las aristas a G
+LINEA_A = {"Alberti", "Pasco", "Congreso", "Sáenz Peña", "Lima", "Piedras", "Perú", "Plaza de Mayo"}
+LINEA_B = {"Pasteur", "Callao", "Uruguay", "Carlos Pellegrini", "Florida", "Leandro N. Alem"}
+LINEA_C = {"Constitución", "San Juan", "Independencia_C", "Moreno","Avenida de Mayo", "Diagonal Norte", "Lavalle", "General San Martin", "Retiro"}
+LINEA_D = {"Facultad de Medicina", "Callao", "Tribunales", "9 de Julio", "Diagonal Norte", "Catedral"}
+LINEA_E = {"Pichincha", "Entre Ríos", "San José", "Independencia_E", "Belgrano", "Bolívar"}
+
+# lista de estaciones
+estaciones_linea = [LINEA_A, LINEA_B, LINEA_C, LINEA_D, LINEA_E]
+
+
+# FUNCIONES AUXILIARES
+
+def haversine(lat1, lon1, lat2, lon2) -> float:
+    """
+    Esta función calcula según la fórmula de Haversine la distancia entre
+    dos puntos geográficos a partir de sus coordenadas y teniendo en cuenta
+    la curvatura de la Tierra.
+    """
+    R = 6371e3  # Radio de la Tierra en metros
+    phi1, phi2 = radians(lat1), radians(lat2)
+    dphi = radians(lat2 - lat1)
+    dlambda = radians(lon2 - lon1)
+    a = sin(dphi / 2) ** 2 + cos(phi1) * cos(phi2) * sin(dlambda / 2) ** 2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return R * c
+
+
+def distancia(coordenadas_1, coordenadas_2) -> float:
+    """
+    Usa la función haversine para calcular la respectiva distancia entre dos coordenadas.
+    """
+    return haversine(coordenadas_1[0], coordenadas_1[1], coordenadas_2[0], coordenadas_2[1])
+
+
+def colorear_nodos(G, estaciones):
+    color = []
+
+    for node in G.nodes:
+        if node in estaciones[0]:
+            color.append('lightblue')
+        elif node in estaciones[1]:
+            color.append('red')
+        elif node in estaciones[2]:
+            color.append('darkblue')
+        elif node in estaciones[3]:
+            color.append('green')
+        elif node in estaciones[4]:
+            color.append('purple')
+        else:
+            color.append('gray')  # Color por defecto si no se encuentra en ninguna línea
+    return color
+
+
+def colorear_edges(G, estaciones, transbordos_list):
+    color_edge = []
+    for edge in G.edges:
+        node1, node2 = edge
+        if (node1, node2) in transbordos or (node2, node1) in transbordos:
+            color_edge.append('yellow')
+        elif node1 in estaciones[0] or node2 in estaciones[0]:
+            color_edge.append('lightblue')
+        elif node1 in estaciones[1] or node2 in estaciones[1]:
+            color_edge.append('red')
+        elif node1 in estaciones[2] or node2 in estaciones[2]:
+            color_edge.append('darkblue')
+        elif node1 in estaciones[3] or node2 in estaciones[3]:
+            color_edge.append('green')
+        elif node1 in estaciones[4] or node2 in estaciones[4] :
+            color_edge.append('purple')
+        else:
+            color_edge.append('gray')  # Color por defecto
+    return color_edge
+
+
+# CODIGO PRINCIPAL
+
+# Grafo vacío
+G = nx.Graph()
 
 # Agregamos nodos con posiciones
 for linea, estaciones in LISTA_COORDENADAS.items():
     for estacion, coordenadas in estaciones.items():
-        G.add_node(estacion, pos=coordenadas)
+        G.add_node(estacion, pos=(coordenadas[0], coordenadas[1]))
 
 # Definimos las distancias entre las estaciones
 for linea, estaciones in LISTA_COORDENADAS.items():
@@ -85,16 +163,11 @@ for linea, estaciones in LISTA_COORDENADAS.items():
 # Obtener posiciones de los nodos
 pos = nx.get_node_attributes(G, 'pos')
 
-# Lista de transbordos con las conexiones manuales
-transbordos = [
-    ("Lima", "Avenida de Mayo"),  # Línea A <-> Línea C
-    ("Perú", "Catedral"),         # Línea A <-> Línea D
-    ("Independencia", "Independencia"),  # Línea C <-> Línea E
-    ("Bolivar", "Perú"),          # Línea E <-> Línea A
-    ("Diagonal Norte", "Carlos Pellegrini"),  # Línea C <-> Línea B
-    ("Carlos Pellegrini", "9 de Julio"),      # Línea B <-> Línea D
-    ("9 de Julio", "Diagonal Norte"),         # Línea D <-> Línea C
-]
+# Agregar las aristas entre las estaciones de transbordo
+for conexion in transbordos:
+    estacion1, estacion2 = conexion
+    if estacion1 in G.nodes and estacion2 in G.nodes:
+        G.add_edge(estacion1, estacion2, weight=0)  # Peso a definir
 
 # Agregar las aristas entre las estaciones de transbordo
 for estacion1, estacion2 in transbordos:
@@ -102,68 +175,10 @@ for estacion1, estacion2 in transbordos:
         G.add_edge(estacion1, estacion2, weight=0)  # Peso a definir
 
 
-
-
-# Función para colorear los nodos según la línea a la que pertenecen
-# Agregamos los nodos y las aristas a G
-LINEA_A = {"Alberti","Pasco","Congreso","Sáenz Peña","Lima","Piedras", "Perú","Plaza de Mayo"}
-LINEA_B = {"Pasteur","Callao","Uruguay","Carlos Pellegrini","Florida","Leandro N. Alem"}
-LINEA_C = {"Constitución","San Juan","Independencia","Moreno","Avenida de Mayo","Diagonal Norte","Lavalle","General San Martin","Retiro"}
-LINEA_D = {"Facultad de Medicina","Callao","Tribunales","9 de Julio", "Diagonal Norte","Catedral"}
-LINEA_E = {"Pichincha","Entre Ríos","San José","Independencia","Belgrano","Bolívar"}
-transbordos = {"Lima", "Carlos Pellegrini", "Diagonal Norte", "Bolivar", "Avenida de Mayo", "Retiro"}
-
-def colorear_nodos(G):
-    color = []
-    estaciones_linea = [transbordos, LINEA_A, LINEA_B, LINEA_C, LINEA_D, LINEA_E]
-
-    for node in G.nodes:
-        if node in estaciones_linea[0]:
-            color.append('black')
-        elif node in estaciones_linea[1]:
-            color.append('lightblue')
-        elif node in estaciones_linea[2]:
-            color.append('red')
-        elif node in estaciones_linea[3]:
-            color.append('darkblue')
-        elif node in estaciones_linea[4]:
-            color.append('green')
-        elif node in estaciones_linea[5]:
-            color.append('purple')
-        else:
-            color.append('gray')  # Color por defecto si no se encuentra en ninguna línea
-    return color
-
-
-# Función para colorear las aristas
-def colorear_edges(G):
-    color_edge = []
-    estaciones_linea = [transbordos, LINEA_A, LINEA_B, LINEA_C, LINEA_D, LINEA_E]
-
-    for edge in G.edges:
-        if edge[0] in estaciones_linea[0] or edge[1] in estaciones_linea[0]:
-            color_edge.append('black')
-        elif edge[0] in estaciones_linea[1] or edge[1] in estaciones_linea[1]:
-            color_edge.append('lightblue')
-        elif edge[0] in estaciones_linea[2] or edge[1] in estaciones_linea[2]:
-            color_edge.append('red')
-        elif edge[0] in estaciones_linea[3] or edge[1] in estaciones_linea[3]:
-            color_edge.append('darkblue')
-        elif edge[0] in estaciones_linea[4] or edge[1] in estaciones_linea[4]:
-            color_edge.append('green')
-        elif edge[0] in estaciones_linea[5] or edge[1] in estaciones_linea[5]:
-            color_edge.append('purple')
-        else:
-            color_edge.append('gray')  # Color por defecto
-    return color_edge
-
-
-
-
 # Dibujar el grafo
 # Coloreamos los nodos y las aristas
-node_colors = colorear_nodos(G)
-edge_colors = colorear_edges(G)
+node_colors = colorear_nodos(G, estaciones_linea)
+edge_colors = colorear_edges(G, estaciones_linea, transbordos)
 
 # Dibujar el grafo
 plt.figure(figsize=(12, 10))
@@ -178,4 +193,3 @@ nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=500)
 nx.draw_networkx_labels(G, pos, font_size=12)
 
 plt.show()
-
