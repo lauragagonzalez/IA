@@ -47,7 +47,7 @@ DISTANCIAS_COMPLETAS = {
         ("Carabobo", "Puan", 666.10),
         ("Puan", "Primera Junta", 770.65),
         ("Primera Junta", "Acoyte", 576.81),
-        ("Acoyte", "Rio de Janeiro" 678.99),
+        ("Acoyte", "Rio de Janeiro", 678.99),
         ("Rio de Janeiro", "Castro Barros", 799.44),
         ("Castro Barros", "Loria", 605.62),
         ("Loria", "Plaza Miserere", 755.08),
