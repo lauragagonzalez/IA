@@ -1,5 +1,6 @@
 import networkx as nx
 import matplotlib.pyplot as plt
+import math
 from math import radians, sin, cos, sqrt, atan2
 
 # VARIABLES Y DATOS
@@ -74,6 +75,16 @@ LINEA_E = {"Pichincha", "Entre Ríos", "San José", "Independencia_E", "Belgrano
 
 # lista de estaciones
 estaciones_linea = [LINEA_A, LINEA_B, LINEA_C, LINEA_D, LINEA_E]
+
+# Diccionario con velocidades
+velocidades = {
+    "LINEA_A": 5.860,
+    "LINEA_B": 7.414,
+    "LINEA_C": 5.120,
+    "LINEA_D": 6.425,
+    "LINEA_E": 6.464,
+}
+
 
 
 # FUNCIONES AUXILIARES
@@ -158,7 +169,7 @@ for linea, estaciones in LISTA_COORDENADAS.items():
         estacion2 = estaciones_lista[i + 1]
         coord1 = estaciones[estacion1]
         coord2 = estaciones[estacion2]
-        G.add_edge(estacion1, estacion2, weight=distancia(coord1, coord2))
+        G.add_edge(estacion1, estacion2, weight=distancia(coord1, coord2), line=linea)
 
 # Obtener posiciones de los nodos
 pos = nx.get_node_attributes(G, 'pos')
@@ -167,12 +178,7 @@ pos = nx.get_node_attributes(G, 'pos')
 for conexion in transbordos:
     estacion1, estacion2 = conexion
     if estacion1 in G.nodes and estacion2 in G.nodes:
-        G.add_edge(estacion1, estacion2, weight=0)  # Peso a definir
-
-# Agregar las aristas entre las estaciones de transbordo
-for estacion1, estacion2 in transbordos:
-    if estacion1 in G.nodes and estacion2 in G.nodes:
-        G.add_edge(estacion1, estacion2, weight=0)  # Peso a definir
+        G.add_edge(estacion1, estacion2, weight=10, line="transbordo")  # Peso de penalizacion 10 metros
 
 
 # DIBUJO DEL GRAFO
@@ -229,29 +235,54 @@ def haversine_h(nodo_actual, nodo_objetivo) -> float:
     return distancia
 
 
-"""
-def heuristica(distancia, velocidad) -> float:
-    tiempo_hasta_destino = distancia / velocidad
-    return tiempo_hasta_destino
-"""
-# hacer mañana que estoy con sueño
+def tiempo(path, grafo, velocidades) -> float:
+    """
+    Coge el camino desde el origen al destino y calcula cuanto tarda teniendo en cuenta las velocidades
+    de cada linea, y el tiempo por transbordo
+    """
+    if len(path) == 1:
+        return 0
+
+    path_g = grafo.subgraph(path)
+    tiempo = 0
+    for i in range(len(path) - 1):
+        nodo1 = path[i]
+        nodo2 = path[i + 1]
+
+        arista = path_g.get_edge_data(nodo1, nodo2)
+        linea = arista.get("line")
+        if linea == "transbordo":
+            tiempo += 2 # consideramos que se tarda una media de 2 min en realizar un transbordo
+        else:
+            distancia = arista.get("weight", 0)
+            velocidad = velocidades.get(linea, 0)
+            tiempo_trayecto = distancia / velocidad
+            tiempo += tiempo_trayecto / 60 # lo convertimos en minutos
+
+    return tiempo
 
 
-def a_estrella(origen, destino, grafo):
+
+
+
+
+def a_estrella(origen, destino, grafo, velocidades):
     """
     Aplica el algoritmo A* para hallar el camino más corto entre el origen y el destino, devolviendo
     además la longitud de dicho camino.
     """
     camino = nx.astar_path(grafo, origen, destino, heuristic=haversine_h)
     longitud = nx.astar_path_length(grafo, origen, destino, heuristic=haversine_h)
-    print(path)
-    print(f"The path is of {length} m")
+    tiempo_trayecto = tiempo(camino, grafo, velocidades)
+    print(camino)
+    print(f"El camino es de {longitud:.4f} m")
+    print(f"El trayecto tarda {tiempo_trayecto:.2f} min")
     return camino, longitud
 
 
 # visualizacion del resultado de A*
-def visualizacion(origen, destino, grafo):
-    path = a_estrella(origen, destino, grafo)[0]
+def visualizacion(origen, destino, grafo, velocidades):
+    path = a_estrella(origen, destino, grafo, velocidades)[0]
     path_g = grafo.subgraph(path)
     pos_path = nx.get_node_attributes(grafo, 'pos')
     color_path = colorear_nodos(path_g, estaciones_linea)
@@ -265,3 +296,26 @@ def visualizacion(origen, destino, grafo):
             font_size=5,
             node_size=100)
     plt.show()
+
+
+
+
+# PRUEBA
+
+origen = "Pasteur"
+destino = "Plaza de Mayo"
+
+# Run visualization
+visualizacion(origen, destino, G, velocidades)
+
+origen = "Pasteur"
+destino = "Pasteur"
+
+# Run visualization
+visualizacion(origen, destino, G, velocidades)
+
+origen = "Constitución"
+destino = "Retiro"
+
+# Run visualization
+visualizacion(origen, destino, G, velocidades)
