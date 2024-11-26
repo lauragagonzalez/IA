@@ -2,6 +2,11 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import math
 from math import radians, sin, cos, sqrt, atan2
+from datetime import datetime, timedelta
+import webbrowser
+import folium
+import tkinter as tk
+from tkinter import ttk, messagebox
 
 # VARIABLES Y DATOS
 
@@ -262,10 +267,6 @@ def tiempo(path, grafo, velocidades) -> float:
     return tiempo
 
 
-
-
-
-
 def a_estrella(origen, destino, grafo, velocidades):
     """
     Aplica el algoritmo A* para hallar el camino más corto entre el origen y el destino, devolviendo
@@ -319,3 +320,42 @@ destino = "Retiro"
 
 # Run visualization
 visualizacion(origen, destino, G, velocidades)
+
+
+"""
+A partir de aquí empieza la interfaz
+"""
+
+"""
+Días festivos
+"""
+
+# Festivos de Buenos Aires
+FESTIVOS = [
+    "01-01", "24-03", "02-04", "01-05", "25-05", "20-06", "09-07", "17-08",
+    "12-10", "20-11", "08-12", "25-12"
+]
+
+# Función para calcular si es un día festivo
+def es_festivo(fecha):
+    return fecha.strftime("%d-%m") in FESTIVOS
+
+
+# Función para validar el horario del metro
+def horario_metro_operativo(fecha, hora):
+    dia_semana = fecha.weekday()  # 0=Lunes, 6=Domingo
+    inicio_operativo = None
+    fin_operativo = datetime.strptime("23:00", "%H:%M").time()
+
+    if dia_semana in [0, 1, 2, 3, 4]:  # Lunes a viernes
+        inicio_operativo = datetime.strptime("05:30", "%H:%M").time()
+    elif dia_semana == 5:  # Sábados
+        inicio_operativo = datetime.strptime("06:00", "%H:%M").time()
+    else:  # Domingos y feriados
+        inicio_operativo = datetime.strptime("08:00", "%H:%M").time()
+
+    if not (inicio_operativo <= hora <= fin_operativo):
+        return False, "El servicio de metro no está operativo en el horario seleccionado."
+    if datetime.strptime("22:30", "%H:%M").time() <= hora <= fin_operativo:
+        return True, "Aviso: Es posible que el metro cierre pronto."
+    return True, ""
