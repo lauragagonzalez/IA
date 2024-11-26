@@ -323,7 +323,7 @@ visualizacion(origen, destino, G, velocidades)
 
 
 """
-A partir de aquí empieza la interfaz
+A partir de aquí empiezan funciones que se usaran en la interfaz
 """
 
 """
@@ -359,3 +359,21 @@ def horario_metro_operativo(fecha, hora):
     if datetime.strptime("22:30", "%H:%M").time() <= hora <= fin_operativo:
         return True, "Aviso: Es posible que el metro cierre pronto."
     return True, ""
+
+
+
+# Función para detectar la línea de una estación
+def detectar_linea(estacion):
+    """
+    Devuelve el nombre de la línea a la que pertenece una estación.
+    Si la estación no está en ninguna línea, devuelve None.
+    """
+    for linea, estaciones in LISTA_COORDENADAS.items():
+        if estacion in estaciones:
+            return linea
+    return None
+
+
+"""
+Comienzo de la interfaz
+"""
