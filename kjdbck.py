@@ -434,6 +434,22 @@ def validar_tiempo():
         messagebox.showerror("Error", "No existe una ruta entre las estaciones seleccionadas.")
 
 
+def mostrar_detalles(ruta, distancia_total, hora_llegada, transbordos):
+    """
+    Muestra un cuadro de diálogo con los detalles de la ruta calculada.
+    """
+    detalles = f"Ruta: {' -> '.join(ruta)}\n\n"
+    detalles += f"Distancia total: {distancia_total:.2f} metros\n"
+    detalles += f"Tiempo estimado: {tiempo(ruta, G, velocidades):.2f} minutos\n"
+    detalles += f"Hora estimada de llegada: {hora_llegada.strftime('%H:%M')}\n"
+
+    if transbordos:
+        detalles += "\nTransbordos:\n"
+        for origen, destino in transbordos:
+            detalles += f"  - De {origen} a {destino}\n"
+
+    messagebox.showinfo("Detalles de la ruta", detalles)
+
 def calcular_ruta():
     """
     Calcula la ruta más corta entre la estación de origen y la de destino.
@@ -459,38 +475,14 @@ def calcular_ruta():
         tiempo_total = tiempo(ruta, G, velocidades)
         hora_llegada = datetime.now() + timedelta(minutes=tiempo_total)
 
-        resultados = (
-            f"Ruta: {' → '.join(ruta)}\n"
-            f"Distancia total: {longitud:.2f} metros\n"
-            f"Tiempo estimado: {tiempo_total:.2f} minutos\n"
-            f"Hora estimada de llegada: {hora_llegada.strftime('%H:%M:%S')}"
-        )
-
-        messagebox.showinfo("Resultados de la Ruta", resultados)
-
-        # Llamar a la función para mostrar el mapa con la ruta
         mostrar_mapa(ruta)
+        mostrar_detalles(ruta, longitud, hora_llegada, transbordos)
 
     except nx.NetworkXNoPath:
         messagebox.showerror("Error", "No existe una ruta entre las estaciones seleccionadas.")
     except Exception as e:
         messagebox.showerror("Error inesperado", f"Ha ocurrido un error: {str(e)}")
 
-def mostrar_detalles(ruta, distancia_total, hora_llegada, transbordos):
-    """
-    Muestra un cuadro de diálogo con los detalles de la ruta calculada.
-    """
-    detalles = f"Ruta: {' -> '.join(ruta)}\n\n"
-    detalles += f"Distancia total: {distancia_total:.2f} metros\n"
-    detalles += f"Tiempo estimado: {tiempo(ruta, G, velocidades):.2f} minutos\n"
-    detalles += f"Hora estimada de llegada: {hora_llegada.strftime('%H:%M')}\n"
-
-    if transbordos:
-        detalles += "\nTransbordos:\n"
-        for origen, destino in transbordos:
-            detalles += f"  - De {origen} a {destino}\n"
-
-    messagebox.showinfo("Detalles de la ruta", detalles)
 
 
 
@@ -594,5 +586,3 @@ calcular_btn.grid(row=4, column=0, columnspan=2, pady=20)
 
 # Iniciar la interfaz gráfica
 ventana.mainloop()
-
-
