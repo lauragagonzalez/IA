@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import webbrowser
 import folium
 import tkinter as tk
+from tkcalendar import Calendar
 from tkinter import ttk, messagebox
 
 # VARIABLES Y DATOS
@@ -373,7 +374,225 @@ def detectar_linea(estacion):
             return linea
     return None
 
+def validar_tiempo():
+    """
+    Valida la fecha y hora ingresada por el usuario y calcula el tiempo estimado del viaje.
+    """
+    hora = hora_var.get()
+    minuto = minuto_var.get()
+
+    # Validar si se ingresaron hora y minutos
+    if not hora or not minuto:
+        ahora = datetime.now()
+        hora = ahora.hour
+        minuto = ahora.minute
+        messagebox.showinfo(
+            "Aviso",
+            "Se ha calculado el viaje en la hora actual. "
+            "Te recomendamos ingresar una hora si deseas calcular un viaje en un momento específico."
+        )
+    elif not hora.isdigit() or not minuto.isdigit():
+        messagebox.showerror("Error", "La hora y los minutos deben ser números válidos.")
+        return
+
+    try:
+        hora = int(hora)
+        minuto = int(minuto)
+        fecha_viaje = datetime.strptime(fecha_var.get(), "%d-%m-%Y")
+        hora_viaje = datetime.strptime(f"{hora:02d}:{minuto:02d}", "%H:%M").time()
+
+        # Validar el horario del metro
+        operativo, mensaje_horario = horario_metro_operativo(fecha_viaje, hora_viaje)
+        if not operativo:
+            messagebox.showerror("Error", mensaje_horario)
+            return
+        elif mensaje_horario:
+            messagebox.showinfo("Aviso", mensaje_horario)
+
+    except ValueError:
+        messagebox.showerror("Error", "Hora o fecha inválida.")
+        return
+
+    # Obtener origen y destino
+    origen = estacion_origen.get()
+    destino = estacion_destino.get()
+
+    # Validar que se hayan seleccionado estaciones
+    if not origen or not destino:
+        messagebox.showerror("Error", "Debe seleccionar tanto la estación de origen como la de destino.")
+        return
+
+    try:
+        # Calcular la ruta y el tiempo estimado
+        ruta, distancia_total = a_estrella(origen, destino, G, velocidades)
+        tiempo_total = tiempo(ruta, G, velocidades)
+        hora_llegada = datetime.combine(fecha_viaje, hora_viaje) + timedelta(minutes=tiempo_total)
+
+        # Mostrar los detalles del trayecto
+        mostrar_detalles(ruta, distancia_total, hora_llegada, transbordos)
+    except nx.NetworkXNoPath:
+        messagebox.showerror("Error", "No existe una ruta entre las estaciones seleccionadas.")
+
+
+def calcular_ruta():
+    """
+    Calcula la ruta más corta entre la estación de origen y la de destino.
+    Valida las entradas y muestra los resultados en la interfaz gráfica.
+    """
+    origen = estacion_origen.get()
+    destino = estacion_destino.get()
+
+    # Validación de entradas
+    if not origen or not destino:
+        messagebox.showerror("Error", "Debe seleccionar tanto la estación de origen como la de destino.")
+        return
+
+    if origen == destino:
+        messagebox.showerror("Error", "La estación de origen y destino no pueden ser la misma.")
+        return
+
+    try:
+        # Calcula la ruta usando A*
+        ruta, longitud = a_estrella(origen, destino, G, velocidades)
+
+        # Mostrar resultados
+        tiempo_total = tiempo(ruta, G, velocidades)
+        hora_llegada = datetime.now() + timedelta(minutes=tiempo_total)
+
+        resultados = (
+            f"Ruta: {' → '.join(ruta)}\n"
+            f"Distancia total: {longitud:.2f} metros\n"
+            f"Tiempo estimado: {tiempo_total:.2f} minutos\n"
+            f"Hora estimada de llegada: {hora_llegada.strftime('%H:%M:%S')}"
+        )
+
+        messagebox.showinfo("Resultados de la Ruta", resultados)
+
+        # Llamar a la función para mostrar el mapa con la ruta
+        mostrar_mapa(ruta)
+
+    except nx.NetworkXNoPath:
+        messagebox.showerror("Error", "No existe una ruta entre las estaciones seleccionadas.")
+    except Exception as e:
+        messagebox.showerror("Error inesperado", f"Ha ocurrido un error: {str(e)}")
+
+def mostrar_detalles(ruta, distancia_total, hora_llegada, transbordos):
+    """
+    Muestra un cuadro de diálogo con los detalles de la ruta calculada.
+    """
+    detalles = f"Ruta: {' -> '.join(ruta)}\n\n"
+    detalles += f"Distancia total: {distancia_total:.2f} metros\n"
+    detalles += f"Tiempo estimado: {tiempo(ruta, G, velocidades):.2f} minutos\n"
+    detalles += f"Hora estimada de llegada: {hora_llegada.strftime('%H:%M')}\n"
+
+    if transbordos:
+        detalles += "\nTransbordos:\n"
+        for origen, destino in transbordos:
+            detalles += f"  - De {origen} a {destino}\n"
+
+    messagebox.showinfo("Detalles de la ruta", detalles)
+
+
+
+def mostrar_mapa(ruta):
+    coords = []
+    # Recorremos la ruta para obtener las coordenadas de cada estación
+    for estacion in ruta:
+        print(f"Buscando coordenadas para: {estacion}")  # Debug
+        # Buscamos la estación dentro de las líneas de la lista
+        found = False
+        for linea, estaciones in LISTA_COORDENADAS.items():
+            if estacion in estaciones:
+                # Si encontramos la estación, agregamos sus coordenadas
+                coords.append(estaciones[estacion])
+                print(f"Coordenadas para {estacion}: {estaciones[estacion]}")  # Debug
+                found = True
+                break
+        if not found:
+            print(f"Estación {estacion} no encontrada.")  # Debug
+
+    # Si no encontramos coordenadas, mostramos un mensaje de error
+    if not coords:
+        messagebox.showerror("Error", "No se pudieron encontrar coordenadas para algunas estaciones.")
+        return
+
+    # Verifica que las coordenadas están correctas
+    print(f"Coordenadas para la ruta: {coords}")  # Debug
+
+    # Iniciamos el mapa en la primera estación
+    inicio_coord = coords[0]
+    mapa = folium.Map(location=inicio_coord, zoom_start=14)
+    
+    # Añadimos los marcadores y la línea de la ruta
+    for estacion, coord in zip(ruta, coords):
+        folium.Marker(coord, popup=estacion).add_to(mapa)
+    
+    # Línea azul que conecta las estaciones
+    folium.PolyLine(coords, color="blue", weight=5).add_to(mapa)
+
+    # Guardamos el archivo del mapa en formato HTML
+    try:
+        mapa.save("ruta_metro.html")
+        print("Mapa guardado correctamente como 'ruta_metro.html'.")  # Debug
+    except Exception as e:
+        messagebox.showerror("Error", f"No se pudo guardar el mapa: {e}")
+        return
+
+    # Abrimos el mapa en el navegador
+    try:
+        webbrowser.open("ruta_metro.html")
+        print("Abriendo el mapa en el navegador...")  # Debug
+    except Exception as e:
+        messagebox.showerror("Error", f"No se pudo abrir el navegador: {e}")
+        return
+
+
 
 """
 Comienzo de la interfaz
 """
+# Interfaz gráfica
+ventana = tk.Tk()
+ventana.title("Calculadora de rutas de metro")
+
+# Variables de las estaciones
+estacion_origen = tk.StringVar()
+estacion_destino = tk.StringVar()
+fecha_var = tk.StringVar()
+hora_var = tk.StringVar()
+minuto_var = tk.StringVar()
+
+# Establecer la fecha actual como valor inicial
+fecha_actual = datetime.now().strftime("%d-%m-%Y")
+fecha_var.set(fecha_actual)
+
+# Widgets
+ttk.Label(ventana, text="Estación de origen:").grid(row=0, column=0, padx=10, pady=10)
+origen_menu = ttk.Combobox(ventana, textvariable=estacion_origen, values=list(G.nodes()))
+origen_menu.grid(row=0, column=1, padx=10, pady=10)
+
+ttk.Label(ventana, text="Estación de destino:").grid(row=1, column=0, padx=10, pady=10)
+destino_menu = ttk.Combobox(ventana, textvariable=estacion_destino, values=list(G.nodes()))
+destino_menu.grid(row=1, column=1, padx=10, pady=10)
+
+# Selector de fecha
+ttk.Label(ventana, text="Fecha de viaje:").grid(row=2, column=0, padx=10, pady=10)
+calendario = Calendar(ventana, date_pattern="dd-mm-yyyy", textvariable=fecha_var)
+calendario.grid(row=2, column=1, padx=10, pady=10)
+
+# Selector de hora y minutos
+ttk.Label(ventana, text="Hora de salida:").grid(row=3, column=0, padx=10, pady=10)
+horas = [f"{h:02d}" for h in range(24)]
+minutos = [f"{m:02d}" for m in range(60)]
+hora_menu = ttk.Combobox(ventana, textvariable=hora_var, values=horas, width=5)
+hora_menu.grid(row=3, column=1, padx=10, pady=5, sticky="w")
+minuto_menu = ttk.Combobox(ventana, textvariable=minuto_var, values=minutos, width=5)
+minuto_menu.grid(row=3, column=1, padx=10, pady=5, sticky="e")
+
+calcular_btn = ttk.Button(ventana, text="Calcular Ruta", command=calcular_ruta)
+calcular_btn.grid(row=4, column=0, columnspan=2, pady=20)
+
+# Iniciar la interfaz gráfica
+ventana.mainloop()
+
+
