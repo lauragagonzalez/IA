@@ -1,3 +1,4 @@
+
 import networkx as nx
 import matplotlib
 import matplotlib.pyplot as plt
@@ -447,9 +448,13 @@ def calcular_ruta():
 
 # Iniciar la interfaz con Streamlit
 def main():
+
     st.title("Calculadora de rutas de metro")
 
     now = datetime.now()
+
+    if "detalles_ruta" not in st.session_state:
+        st.session_state["detalles_ruta"] = ""
     if "estacion_origen" not in st.session_state:
         st.session_state.estacion_origen = ""
     if "estacion_destino" not in st.session_state:
@@ -460,9 +465,9 @@ def main():
         st.session_state.hora_var = f"{now.hour:02d}"
     if "minuto_var" not in st.session_state:
         st.session_state.minuto_var = f"{now.minute:02d}"
-
     if "mapa" not in st.session_state:
-        st.session_state.mapa = None
+        mapa_vacio = folium.Map(location= [-34.6037, -58.3816], zoom_start=12) 
+        st.session_state["mapa"] = mapa_vacio
 
     st.sidebar.header("Configuración de la ruta")
 
