@@ -7,3 +7,6 @@ Buenas para jecutar el código hay que hacer lo siguiente:
   4. Para volver a ejecutarlo no se hace lo mismo, vereis que os sale algo asi:
       Local URL: http://localhost:8504
       Pues si pinchais funciona como un enlace. Si quereis volver a ejecutarlo como tal, me da que vais a tener que abrir una nueva terminal.
+
+
+Faltaría intentar que en vez de la foto del metro se ancle el html y poner bonito el html haciendo que se marquen las rutas maybe?
