@@ -337,6 +337,21 @@ def validar_ruta(origen, destino):
     return True, ""
 
 
+def detectar_transbordos_ruta(ruta):
+    """
+    Toma una ruta y devuelve una lista de duplas correspondientes a los transbordos de esta.
+    """
+    transbordos = []
+    for index in range(len(ruta) - 1):
+        nodo1 = ruta[index]
+        nodo2 = ruta[index + 1]
+        arista = G.get_edge_data(nodo1, nodo2)
+        line = arista.get("line")
+        if line == "transbordo":
+            transbordos.append((nodo1, nodo2))
+    return transbordos
+
+
 def mostrar_detalles(ruta, distancia_total, tiempo_trayecto, hora_llegada, transbordos):
     """
     Muestra un cuadro de diálogo con los detalles de la ruta calculada.
@@ -391,21 +406,6 @@ def mostrar_mapa(ruta):
     except Exception as e:
         messagebox.showerror("Error", f"No se pudo abrir el navegador: {e}")
         return
-
-
-def detectar_transbordos_ruta(ruta):
-    """
-    Toma una ruta y devuelve una lista de duplas correspondientes a los transbordos de esta.
-    """
-    transbordos = []
-    for index in range(len(ruta) - 1):
-        nodo1 = ruta[index]
-        nodo2 = ruta[index + 1]
-        arista = G.get_edge_data(nodo1, nodo2)
-        line = arista.get("line")
-        if line == "transbordo":
-            transbordos.append((nodo1, nodo2))
-    return transbordos
 
 
 def calcular_ruta():
