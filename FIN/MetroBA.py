@@ -12,12 +12,14 @@ from tkinter import ttk, messagebox
 from tkcalendar import Calendar
 
 import streamlit as st
+from streamlit_folium import st_folium
 from datetime import datetime, timedelta
 import webbrowser
 from PIL import Image
 
 # matplotlib debe usar el backend tkAgg para evitar conflictos con tkinter
-#matplotlib.use('tkAgg')
+matplotlib.use('tkAgg')
+
 
 # VARIABLES Y DATOS
 LISTA_COORDENADAS = {
@@ -266,21 +268,21 @@ node_colors = colorear_nodos(G, estaciones_linea)
 edge_colors = colorear_edges(G, estaciones_linea, transbordos)
 
 # Dibujar el grafo
-#plt.figure(figsize=(12, 10))
+# plt.figure(figsize=(12, 10))
 
-#nx.draw_networkx_edges(G, pos, edge_color=edge_colors, width=2)
-#nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=500)
-#nx.draw_networkx_labels(G, pos, font_size=12)
+# nx.draw_networkx_edges(G, pos, edge_color=edge_colors, width=2)
+# nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=500)
+# nx.draw_networkx_labels(G, pos, font_size=12)
 
-#plt.show()
+# plt.show()
 
 
 # EJEMPLOS Y PRUEBAS DEL ALGORITMO A*
 
-#Los elimine pq me cansaron , lo sineto LUCI
+# Los elimine pq me cansaron , lo sineto LUCI
+# PENDEJA
 
 
-# Festivos de Buenos Aires
 # FUNCIONES AUXILIARES PARA LA INTERFAZ
 def es_festivo(fecha):
     """
@@ -289,7 +291,6 @@ def es_festivo(fecha):
     return fecha.strftime("%d-%m") in FESTIVOS
 
 
-# Función para validar el horario del metro
 def horario_metro_operativo(fecha, hora):
     """
     Se toma la fecha y la hora seleccionadas por el usuario y se comprueba si son validas, si lo son se la devolverá
@@ -313,9 +314,6 @@ def horario_metro_operativo(fecha, hora):
         return True, "Es posible que el metro cierre pronto."
     return True, ""
 
-
-
-# Función para detectar la línea de una estación
 
 def validar_ruta(origen, destino):
     """
@@ -349,15 +347,13 @@ def detectar_transbordos_ruta(ruta):
     return transbordos
 
 
-
-#CAMBIADA SOLO LA ÚLTIMA LINEA
-def mostrar_detalles(ruta, distancia_total, hora_llegada, transbordos):
+def mostrar_detalles(ruta, distancia_total, tiempo_trayecto, hora_llegada, transbordos):
     """
-    Muestra los detalles de la ruta calculada en el área de texto de la interfaz.
+    Muestra un cuadro de diálogo con los detalles de la ruta calculada.
     """
     detalles = f"Ruta: {' -> '.join(ruta)}\n\n"
     detalles += f"Distancia total: {distancia_total:.2f} metros\n"
-    detalles += f"Tiempo estimado: {tiempo(ruta, G, velocidades):.2f} minutos\n"
+    detalles += f"Tiempo estimado: {tiempo_trayecto:.2f} minutos\n"
     detalles += f"Hora estimada de llegada: {hora_llegada.strftime('%H:%M')}\n"
 
     if transbordos:
@@ -365,57 +361,33 @@ def mostrar_detalles(ruta, distancia_total, hora_llegada, transbordos):
         for origen, destino in transbordos:
             detalles += f"  - De {origen} a {destino}\n"
 
-    st.text_area("Detalles de la ruta", detalles, height=200)
+    st.session_state.detalles_ruta = detalles
 
 
-def mostrar_mapa(ruta):
-
+def crear_mapa(ruta):
     coords = []
-    # Recorremos la ruta para obtener las coordenadas de cada estación
     for estacion in ruta:
-        print(f"Buscando coordenadas para: {estacion}")  # Debug
         found = False
-        for linea, estaciones in LISTA_COORDENADAS.items():
+        index = 0
+        while index < len(LISTA_COORDENADAS) and not found:
+            linea, estaciones = list(LISTA_COORDENADAS.items())[index]
             if estacion in estaciones:
                 coords.append(estaciones[estacion])
                 found = True
-                break
+            index += 1
         if not found:
-            print(f"Estación {estacion} no encontrada.")  # Debug
+            st.error("No se pudieron encontrar coordenadas para algunas estaciones.")
+            return
 
-    if not coords:
-        messagebox.showerror("Error", "No se pudieron encontrar coordenadas para algunas estaciones.")
-        return
-
-    print(f"Coordenadas para la ruta: {coords}")  # Debug
-
-    # Iniciamos el mapa en la primera estación
     inicio_coord = coords[0]
     mapa = folium.Map(location=inicio_coord, zoom_start=14)
 
-    # Añadimos los marcadores y la línea de la ruta
     for estacion, coord in zip(ruta, coords):
         folium.Marker(coord, popup=estacion).add_to(mapa)
 
-    # Línea azul que conecta las estaciones
     folium.PolyLine(coords, color="blue", weight=5).add_to(mapa)
 
-    # Guardamos el archivo del mapa en formato HTML
-    try:
-        mapa.save("ruta_metro.html")
-        print("Mapa guardado correctamente como 'ruta_metro.html'.")  # Debug
-    except Exception as e:
-        messagebox.showerror("Error", f"No se pudo guardar el mapa: {e}")
-        return
-
-    # Intentar abrir el mapa en el navegador
-    try:
-        # Abre el archivo HTML con el navegador predeterminado
-        webbrowser.open("ruta_metro.html", new=2)  # new=2 abre en una nueva pestaña si es posible
-        print("Abriendo el mapa en el navegador...")  # Debug
-    except Exception as e:
-        messagebox.showerror("Error", f"No se pudo abrir el navegador: {e}")
-
+    st.session_state.mapa = mapa
 
 
 def calcular_ruta():
@@ -426,30 +398,23 @@ def calcular_ruta():
     origen = st.session_state.estacion_origen
     destino = st.session_state.estacion_destino
 
-    # Validación de entradas
-    if not origen or not destino:
-        st.error("Debe seleccionar tanto la estación de origen como la de destino.")
+    ruta_valida, mensaje = validar_ruta(origen, destino)
+    if not ruta_valida:
+        st.error(mensaje)
         return
+    elif mensaje:
+        st.info(mensaje)
 
-    if origen == destino:
-        st.error("La estación de origen y destino no pueden ser la misma.")
-        return
-
-    # Validar entrada de hora y minutos
     hora = st.session_state.hora_var
     minuto = st.session_state.minuto_var
-    if not hora or not minuto:
-        ahora = datetime.now()
-        hora = ahora.hour
-        minuto = ahora.minute
-        st.info("Se ha calculado el viaje en la hora actual. Te recomendamos ingresar una hora si deseas calcular un viaje en un momento específico.")
 
+    # primero hay que setear siempre las variables de fecha, hora y minuto a la hora actual con datetime
     try:
-        # Calcular fecha y hora del viaje
+        hora = int(hora)
+        minuto = int(minuto)
         fecha_viaje = datetime.strptime(st.session_state.fecha_var, "%d-%m-%Y")
-        hora_viaje = datetime.strptime(f"{hora}:{minuto}", "%H:%M").time()
-        
-        # Validar el horario del metro
+        hora_viaje = datetime.strptime(f"{hora:02d}:{minuto:02d}", "%H:%M").time()
+
         operativo, mensaje_horario = horario_metro_operativo(fecha_viaje, hora_viaje)
         if not operativo:
             st.error(mensaje_horario)
@@ -457,43 +422,48 @@ def calcular_ruta():
         elif mensaje_horario:
             st.info(mensaje_horario)
 
-        # Calcular la ruta usando A* (o el algoritmo que utilices)
-        ruta, longitud = a_estrella(origen, destino, G, velocidades)
+    except ValueError:
+        st.error("Hora o fecha inválida.")
+        return
 
-        # Mostrar resultados
-        tiempo_total = tiempo(ruta, G, velocidades)
-        hora_llegada = datetime.now() + timedelta(minutes=tiempo_total)
+    except Exception as e:
+        st.error(f"Ha ocurrido un error inesperado: {str(e)}")
+        return
 
-        # Mostrar detalles
-        mostrar_detalles(ruta, longitud, hora_llegada, transbordos)
+    try:
+        ruta, longitud, tiempo_total = a_estrella(origen, destino, G, velocidades)
+        transbordos_ruta = detectar_transbordos_ruta(ruta)
+        hora_llegada = datetime.combine(fecha_viaje, hora_viaje) + timedelta(minutes=tiempo_total)
 
-        # Mostrar el mapa
-        mostrar_mapa(ruta)
+        crear_mapa(ruta)
+        mostrar_detalles(ruta, longitud, tiempo_total, hora_llegada, transbordos_ruta)
 
     except nx.NetworkXNoPath:
         st.error("No existe una ruta entre las estaciones seleccionadas.")
-    except Exception as e:
-        st.error(f"Error inesperado: {str(e)}")
 
+    except Exception as e:
+        st.error(f"Ha ocurrido un error: {str(e)}")
 
 
 # Iniciar la interfaz con Streamlit
 def main():
     st.title("Calculadora de rutas de metro")
 
-    # Establecer las variables globales con session_state
+    now = datetime.now()
     if "estacion_origen" not in st.session_state:
         st.session_state.estacion_origen = ""
     if "estacion_destino" not in st.session_state:
         st.session_state.estacion_destino = ""
     if "fecha_var" not in st.session_state:
-        st.session_state.fecha_var = datetime.now().strftime("%d-%m-%Y")
+        st.session_state.fecha_var = now.strftime("%d-%m-%Y")
     if "hora_var" not in st.session_state:
-        st.session_state.hora_var = 0
+        st.session_state.hora_var = f"{now.hour:02d}"
     if "minuto_var" not in st.session_state:
-        st.session_state.minuto_var = 0
+        st.session_state.minuto_var = f"{now.minute:02d}"
 
-    # Crear los formularios de entrada
+    if "mapa" not in st.session_state:
+        st.session_state.mapa = None
+
     st.sidebar.header("Configuración de la ruta")
 
     estacion_origen = st.sidebar.selectbox("Estación de origen", list(G.nodes()))
@@ -502,12 +472,23 @@ def main():
     st.session_state.estacion_destino = estacion_destino
 
     # Fecha de viaje
-    fecha_var = st.sidebar.date_input("Fecha de viaje", datetime.now())
+    fecha_var = st.sidebar.date_input(
+        "Fecha de viaje",
+        value=datetime.strptime(st.session_state.fecha_var, "%d-%m-%Y"),
+    )
     st.session_state.fecha_var = fecha_var.strftime("%d-%m-%Y")
 
     # Hora y minuto de salida
-    hora_var = st.sidebar.selectbox("Hora de salida", [f"{h:02d}" for h in range(24)])
-    minuto_var = st.sidebar.selectbox("Minutos", [f"{m:02d}" for m in range(60)])
+    hora_var = st.sidebar.selectbox(
+        "Hora de salida",
+        [f"{h:02d}" for h in range(24)],
+        index=int(st.session_state.hora_var),
+    )
+    minuto_var = st.sidebar.selectbox(
+        "Minutos",
+        [f"{m:02d}" for m in range(60)],
+        index=int(st.session_state.minuto_var),
+    )
     st.session_state.hora_var = hora_var
     st.session_state.minuto_var = minuto_var
 
@@ -515,9 +496,12 @@ def main():
     if st.sidebar.button("Calcular Ruta"):
         calcular_ruta()
 
-    # Mostrar la imagen del mapa
-    image = Image.open("Metro.PNG")
-    st.image(image, caption="Mapa del Metro", use_column_width=True)
+    if st.session_state.mapa:
+        st.markdown("### Mapa de la ruta")
+        st_folium(st.session_state.mapa, width=700, height=500)
+
+    if st.session_state.detalles_ruta:
+        st.text_area("Detalles de la ruta", st.session_state.detalles_ruta, height=200)
 
 
 if __name__ == "__main__":
