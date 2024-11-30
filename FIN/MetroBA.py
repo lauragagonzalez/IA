@@ -501,7 +501,7 @@ def main():
     st.session_state.estacion_destino = estacion_destino
 
     # Fecha de viaje
-    fecha_actual = datetime().now().date()
+    fecha_actual = datetime.now().date()
     fecha_var = st.sidebar.date_input(
         "Fecha de viaje",
         value=fecha_actual,
