@@ -518,7 +518,6 @@ def main():
         calcular_ruta()
 
     if st.session_state.mapa:
-        st.markdown("### Mapa de la ruta")
         st_folium(st.session_state.mapa, width=700, height=500)
 
     if st.session_state.detalles_ruta:
