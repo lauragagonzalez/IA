@@ -6,17 +6,11 @@ import math
 import os
 from math import radians, sin, cos, sqrt, atan2
 from datetime import datetime, timedelta
-import webbrowser
 import folium
-import tkinter as tk
-from tkinter import ttk, messagebox
-from tkcalendar import Calendar
-
 import streamlit as st
 from streamlit_folium import st_folium
 from datetime import datetime, timedelta
 import webbrowser
-from PIL import Image
 
 # matplotlib debe usar el backend tkAgg para evitar conflictos con tkinter
 matplotlib.use('tkAgg')
@@ -268,20 +262,36 @@ for conexion in transbordos:
 node_colors = colorear_nodos(G, estaciones_linea)
 edge_colors = colorear_edges(G, estaciones_linea, transbordos)
 
-# Dibujar el grafo
-# plt.figure(figsize=(12, 10))
+# Dibujar el grafo en el mapa
 
-# nx.draw_networkx_edges(G, pos, edge_color=edge_colors, width=2)
-# nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=500)
-# nx.draw_networkx_labels(G, pos, font_size=12)
+def agregar_grafo_al_mapa(grafo, pos, estaciones_linea, transbordos):
+    # Crear un mapa base centrado en Buenos Aires
+    mapa = folium.Map(location=[-34.6037, -58.3816], zoom_start=13)
 
-# plt.show()
+    # Colorear nodos y aristas
+    node_colors = colorear_nodos(grafo, estaciones_linea)
+    edge_colors = colorear_edges(grafo, estaciones_linea, transbordos)
 
+    # Agregar nodos (estaciones) al mapa con el color correspondiente
+    for i, (nodo, coordenadas) in enumerate(pos.items()):
+        folium.Marker(
+            location=coordenadas,
+            popup=nodo,
+            icon=folium.Icon(color=node_colors[i],icon="subway", prefix='fa')  
+        ).add_to(mapa)
 
-# EJEMPLOS Y PRUEBAS DEL ALGORITMO A*
+    for idx, edge in enumerate(grafo.edges):
+        estacion1, estacion2 = edge
+        coord1 = pos[estacion1]
+        coord2 = pos[estacion2]
+        folium.PolyLine(
+            locations=[coord1, coord2],
+            color=edge_colors[idx],
+            weight=3,
+            opacity=0.8,
+        ).add_to(mapa)
 
-# Los elimine pq me cansaron , lo sineto LUCI
-# PENDEJA
+    return mapa
 
 
 # FUNCIONES AUXILIARES PARA LA INTERFAZ
@@ -380,13 +390,11 @@ def crear_mapa(ruta):
             st.error("No se pudieron encontrar coordenadas para algunas estaciones.")
             return
 
-    inicio_coord = coords[0]
-    mapa = folium.Map(location=inicio_coord, zoom_start=14)
+    mapa = agregar_grafo_al_mapa(G, pos, estaciones_linea, transbordos)
+    folium.PolyLine(coords, color="black", weight=5).add_to(mapa)
 
     for estacion, coord in zip(ruta, coords):
         folium.Marker(coord, popup=estacion).add_to(mapa)
-
-    folium.PolyLine(coords, color="blue", weight=5).add_to(mapa)
 
     st.session_state.mapa = mapa
 
@@ -396,6 +404,9 @@ def calcular_ruta():
     Calcula la ruta más corta entre la estación de origen y la de destino.
     Valida las entradas y muestra los resultados en la interfaz gráfica de Streamlit.
     """
+    st.session_state["mostrar_ruta"] = False
+    st.session_state["detalles_ruta"] = ""
+
     origen = st.session_state.estacion_origen
     destino = st.session_state.estacion_destino
 
@@ -439,6 +450,8 @@ def calcular_ruta():
         crear_mapa(ruta)
         mostrar_detalles(ruta, longitud, tiempo_total, hora_llegada, transbordos_ruta)
 
+        st.session_state["mostrar_ruta"] = True
+
     except nx.NetworkXNoPath:
         st.error("No existe una ruta entre las estaciones seleccionadas.")
 
@@ -453,8 +466,12 @@ def main():
 
     now = datetime.now()
 
+    if "mostrar_ruta" not in st.session_state:
+        st.session_state["mostrar_ruta"] = False
     if "detalles_ruta" not in st.session_state:
         st.session_state["detalles_ruta"] = ""
+    if "mensaje_ruta" not in st.session_state:
+        st.session_state["mensaje_ruta"] = ""
     if "estacion_origen" not in st.session_state:
         st.session_state.estacion_origen = ""
     if "estacion_destino" not in st.session_state:
@@ -466,8 +483,7 @@ def main():
     if "minuto_var" not in st.session_state:
         st.session_state.minuto_var = f"{now.minute:02d}"
     if "mapa" not in st.session_state:
-        mapa_vacio = folium.Map(location= [-34.6037, -58.3816], zoom_start=12) 
-        st.session_state["mapa"] = mapa_vacio
+        st.session_state["mapa"] = agregar_grafo_al_mapa(G, pos, estaciones_linea, transbordos)
 
     st.sidebar.header("Configuración de la ruta")
 
