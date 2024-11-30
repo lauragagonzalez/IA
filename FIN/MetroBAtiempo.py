@@ -503,9 +503,11 @@ def main():
     st.session_state.estacion_destino = estacion_destino
 
     # Fecha de viaje
+    fecha_actual = datetime().now().date()
     fecha_var = st.sidebar.date_input(
         "Fecha de viaje",
-        value=datetime.strptime(st.session_state.fecha_var, "%d-%m-%Y"),
+        value=fecha_actual,
+        min_value = fecha_actual
     )
     st.session_state.fecha_var = fecha_var.strftime("%d-%m-%Y")
 
