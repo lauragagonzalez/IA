@@ -84,7 +84,7 @@ velocidades = {
     "LINEA_E": 6.464,
 }
 
-VELOCIDAD_MEDIA = 6.2566
+VELOCIDAD_MIN = 5.120
 
 FESTIVOS = [
     "01-01", "24-03", "02-04", "01-05", "25-05", "20-06", "09-07", "17-08",
@@ -189,7 +189,7 @@ def duracion(nodo1, nodo2, grafo, speeds) -> float:
 
 def duracion_h(nodo1, nodo2) -> float:
     dist = haversine_h(nodo1, nodo2)
-    t = dist / VELOCIDAD_MEDIA
+    t = dist / VELOCIDAD_MIN
     return t / 60
 
 
@@ -263,6 +263,7 @@ for conexion in transbordos:
 # Coloreamos los nodos y las aristas
 node_colors = colorear_nodos(G, estaciones_linea)
 edge_colors = colorear_edges(G, estaciones_linea, transbordos)
+
 
 # FUNCIONES AUXILIARES PARA LA INTERFAZ
 # Dibujar el grafo en el mapa
