@@ -6,8 +6,8 @@ from math import radians, sin, cos, sqrt, atan2
 import folium
 import streamlit as st
 from streamlit_folium import st_folium
-from datetime import datetime, timedelta
-
+from datetime import timedelta
+from datetime import datetime
 
 # VARIABLES Y DATOS
 LISTA_COORDENADAS = {
