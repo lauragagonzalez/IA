@@ -1,3 +1,4 @@
+
 import networkx as nx
 import matplotlib
 import matplotlib.pyplot as plt
@@ -405,21 +406,27 @@ def calcular_ruta():
     """
     st.session_state["mostrar_ruta"] = False
     st.session_state["detalles_ruta"] = ""
+    st.session_state["mensaje_ruta"] = "" 
 
     origen = st.session_state.estacion_origen
     destino = st.session_state.estacion_destino
 
+    if origen == destino:
+        st.session_state["mensaje_ruta"] = "El origen y el destino son el mismo. No es necesario desplazarse."
+        mostrar_detalles([origen], 0, 0, datetime.now(), [])
+        return
+
     ruta_valida, mensaje = validar_ruta(origen, destino)
     if not ruta_valida:
-        st.error(mensaje)
+        st.session_state["mensaje_ruta"] = mensaje
         return
     elif mensaje:
-        st.info(mensaje)
+        st.session_state["mensaje_ruta"] = mensaje
 
     hora = st.session_state.hora_var
     minuto = st.session_state.minuto_var
 
-    # primero hay que setear siempre las variables de fecha, hora y minuto a la hora actual con datetime
+    
     try:
         hora = int(hora)
         minuto = int(minuto)
@@ -428,17 +435,17 @@ def calcular_ruta():
 
         operativo, mensaje_horario = horario_metro_operativo(fecha_viaje, hora_viaje)
         if not operativo:
-            st.error(mensaje_horario)
+            st.session_state["mensaje_ruta"] = mensaje_horario 
             return
         elif mensaje_horario:
-            st.info(mensaje_horario)
+            st.session_state["mensaje_ruta"] = mensaje_horario 
 
     except ValueError:
-        st.error("Hora o fecha inválida.")
+        st.session_state["mensaje_ruta"] = "Hora o fecha inválida."
         return
 
     except Exception as e:
-        st.error(f"Ha ocurrido un error inesperado: {str(e)}")
+        st.session_state["mensaje_ruta"] = f"Ha ocurrido un error inesperado: {str(e)}"
         return
 
     try:
@@ -450,12 +457,13 @@ def calcular_ruta():
         mostrar_detalles(ruta, longitud, tiempo_total, hora_llegada, transbordos_ruta)
 
         st.session_state["mostrar_ruta"] = True
+        st.session_state["mensaje_ruta"] = "Ruta calculada con éxito."
 
     except nx.NetworkXNoPath:
-        st.error("No existe una ruta entre las estaciones seleccionadas.")
+        st.session_state["mensaje_ruta"] = "No existe una ruta entre las estaciones seleccionadas."
 
     except Exception as e:
-        st.error(f"Ha ocurrido un error: {str(e)}")
+        st.session_state["mensaje_ruta"] = f"Ha ocurrido un error: {str(e)}"
 
 
 # Iniciar la interfaz con Streamlit
@@ -515,8 +523,12 @@ def main():
     # Botón para calcular la ruta
     if st.sidebar.button("Calcular Ruta"):
         calcular_ruta()
+    
+    if st.session_state["mensaje_ruta"]:
+        st.info(st.session_state["mensaje_ruta"])
 
     if st.session_state.mapa:
+        st.markdown("### Mapa de la ruta")
         st_folium(st.session_state.mapa, width=700, height=500)
 
     if st.session_state.detalles_ruta:
