@@ -81,14 +81,12 @@ DISTANCIAS_COMPLETAS = {
 }
 
 
-#Vamos a calcular la velocidad media de los metros
+# Vamos a calcular la velocidad media de los metros
 
-# calculo de las distancias de cada linea
+# calculo de distancia total de cada linea
 def distancia_linea(linea) -> float:
     """
     Suma las distancias entre estaciones de una sola linea y devuelve el total.
-    :param linea:
-    :return:
     """
     distancia_total = 0
     for _, _, distancia in linea:
@@ -99,13 +97,11 @@ def distancia_linea(linea) -> float:
 def distancias_lineas(lista_lineas) -> list[float]:
     """
     Itera por una lista de lineas y devuelve una lista con sus distancias.
-    :param lista_lineas:
-    :return:
     """
-    distancias = []
+    dists = []
     for _, estaciones in lista_lineas:
-        distancias.append(distancia_linea(estaciones))
-    return distancias
+        dists.append(distancia_linea(estaciones))
+    return dists
 
 
 distancias = distancias_lineas(DISTANCIAS_COMPLETAS.items())
@@ -122,6 +118,7 @@ LISTA_TIEMPOS = [
     ("Linea D", 26),
     ("Linea E", 24)
 ]
+
 
 def velocidad_media(distancia, tiempo) -> float:
     """
