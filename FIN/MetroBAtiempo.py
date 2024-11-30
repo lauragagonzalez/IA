@@ -84,7 +84,7 @@ velocidades = {
     "LINEA_E": 6.464,
 }
 
-VELOCIDAD_MIN = 5.120
+VELOCIDAD_MAX = 7.414
 
 FESTIVOS = [
     "01-01", "24-03", "02-04", "01-05", "25-05", "20-06", "09-07", "17-08",
@@ -189,7 +189,7 @@ def duracion(nodo1, nodo2, grafo, speeds) -> float:
 
 def duracion_h(nodo1, nodo2) -> float:
     dist = haversine_h(nodo1, nodo2)
-    t = dist / VELOCIDAD_MIN
+    t = dist / VELOCIDAD_MAX
     return t / 60
 
 
@@ -507,7 +507,7 @@ def main():
     fecha_var = st.sidebar.date_input(
         "Fecha de viaje",
         value=fecha_actual,
-        min_value = fecha_actual
+        min_value=fecha_actual
     )
     st.session_state.fecha_var = fecha_var.strftime("%d-%m-%Y")
 
