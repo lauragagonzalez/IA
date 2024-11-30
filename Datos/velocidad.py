@@ -146,29 +146,3 @@ velocidades = {
     "LINEA_D": 6.425,
     "LINEA_E": 6.464,
 }
-
-
-"""
-Ahora vamos a calcular el tiempo que tarda entre paradas. luego tendremos en cuenta que hay que añadirle penalizaciones
-"""
-"""
-def calcular_tiempos(distancias, velocidad):
-    tiempos = {}
-    for linea, paradas in distancias.items():
-        tiempos[linea] = []
-        for estacion1, estacion2, distancia in paradas:
-            velocidad = velocidades[linea]
-            tiempo_segundos = distancia/velocidad
-            tiempo_minutos = tiempo_segundos / 60
-            tiempos[linea].append((estacion1, estacion2, tiempo_minutos))
-    return tiempos
-
-tiempos_entre_paradas = calcular_tiempos(DISTANCIAS, velocidades)
-
-
-for linea, tiempos in tiempos_entre_paradas.items():
-    print(f"Tiempos en {linea}:")
-    for estacion1, estacion2, tiempo in tiempos:
-        print(f" - {estacion1} -> {estacion2}: {tiempo} minutos")
-    print()
-"""
