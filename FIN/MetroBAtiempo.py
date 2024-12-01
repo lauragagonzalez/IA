@@ -94,6 +94,9 @@ FESTIVOS = [
 
 # FUNCIONES AUXILIARES PARA EL GRAFO
 def colorear_nodos(grafo, estaciones):
+    """
+    Colorea los nodos según la línea a la que pertenecen.
+    """
     color = []
     for node in grafo.nodes:
         if node in estaciones[0]:
@@ -112,6 +115,10 @@ def colorear_nodos(grafo, estaciones):
 
 
 def colorear_edges(grafo, estaciones, transbordos):
+    """
+    Colorea las aristas según la línea a la que pertenezcan, las aristas transbordos se
+    colorean de amarillo.
+    """
     color_edge = []
     for edge in grafo.edges:
         node1, node2 = edge
@@ -128,19 +135,19 @@ def colorear_edges(grafo, estaciones, transbordos):
         elif node1 in estaciones[4] or node2 in estaciones[4]:
             color_edge.append('purple')
         else:
-            color_edge.append('gray')  # Color por defecto
+            color_edge.append('gray')  # Color por defecto si no se encuentra a que línea pertenece
     return color_edge
 
 
 def haversine(lat1, lon1, lat2, lon2) -> float:
     """
     Esta función calcula según la fórmula de Haversine la distancia entre dos puntos geográficos a partir de sus
-    coordenadas y teniendo en cuenta la curvatura de la Tierra.
+    coordenadas y teniendo en cuenta la curvatura de la Tierra. En metros.
     """
     R = 6371e3  # Radio de la Tierra en metros
     phi1, phi2 = radians(lat1), radians(lat2)
-    dphi = radians(lat2 - lat1)
-    dlambda = radians(lon2 - lon1)
+    dphi = radians(lat2 - lat1)  # diferencia phi
+    dlambda = radians(lon2 - lon1)  # diferencia lambda
     a = sin(dphi / 2) ** 2 + cos(phi1) * cos(phi2) * sin(dlambda / 2) ** 2
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
     return R * c
@@ -183,13 +190,17 @@ def duracion(nodo1, nodo2, grafo, speeds) -> float:
         dist = arista.get("length")
         speed = speeds.get(line, 0)
         tiempo_trayecto = dist / speed
-        t = tiempo_trayecto / 60  # lo convertimos en minutos
+        t = tiempo_trayecto / 60  # lo convertimos a minutos
     return t
 
 
-def duracion_h(nodo1, nodo2) -> float:
-    dist = haversine_h(nodo1, nodo2)
-    t = dist / VELOCIDAD_MAX
+def duracion_h(nodo_actual, nodo_objetivo) -> float:
+    """
+    Calcula la duración estimada desde el nodo_actual hasta el nodo_destino tomando la distancia
+    de haversine y la velocidad máxima de las líneas de metro.
+    """
+    dist = haversine_h(nodo_actual, nodo_objetivo)
+    t = dist / VELOCIDAD_MAX  # velocidad máxima de los 5 metros
     return t / 60
 
 
@@ -200,14 +211,16 @@ def a_estrella(origen_n, destino_n, grafo):
     """
     camino = nx.astar_path(grafo, origen_n, destino_n, heuristic=duracion_h)
     tiempo_trayecto = nx.astar_path_length(grafo, origen_n, destino_n, heuristic=duracion_h, weight="weight")
+    # suma de las duraciones de cada arista del camino
     longitud = nx.astar_path_length(grafo, origen_n, destino_n, heuristic=duracion_h, weight="length")
+    # suma de las distancias de cada arista del camino
     return camino, longitud, tiempo_trayecto
 
 
-def visualizacion(origen_n, destino_n, grafo, velocidades, transbordos):
+def visualizacion(origen_n, destino_n, grafo, transbordos):
     """
     Toma un grafo, el origen y destino de la ruta deseada y las velocidades especificas, y crea un grafo mostrando
-    la ruta encontrada por el algoritmo A*
+    la ruta encontrada por el algoritmo A*.
     """
     path = a_estrella(origen_n, destino_n, grafo)[0]
     path_g = grafo.subgraph(path)
@@ -228,13 +241,13 @@ def visualizacion(origen_n, destino_n, grafo, velocidades, transbordos):
 # CREACION DEL GRAFO
 G = nx.Graph()
 
-# Agregamos nodos con posiciones
+# Agregamos nodos con sus coordenadas como atributo de posicion
 for linea, estaciones in LISTA_COORDENADAS.items():
     for estacion, coordenadas in estaciones.items():
         G.add_node(estacion, pos=(coordenadas[0], coordenadas[1]))
 
 
-# Agregamos aristas entre estaciones con peso determinado por la distancia entre estas
+# Agregamos aristas entre estaciones con peso determinado por el tiempo que se tarda en recorrer
 for linea, estaciones in LISTA_COORDENADAS.items():
     estaciones_lista = list(estaciones.keys())
     for i in range(len(estaciones_lista) - 1):
@@ -242,6 +255,7 @@ for linea, estaciones in LISTA_COORDENADAS.items():
         estacion2 = estaciones_lista[i + 1]
         coord1 = estaciones[estacion1]
         coord2 = estaciones[estacion2]
+        # añadimos ademas los atributos length (distancia de la arista) y line (línea a la que pertenece)
         G.add_edge(
             estacion1,
             estacion2,
@@ -266,8 +280,10 @@ edge_colors = colorear_edges(G, estaciones_linea, transbordos)
 
 
 # FUNCIONES AUXILIARES PARA LA INTERFAZ
-# Dibujar el grafo en el mapa
 def agregar_grafo_al_mapa(grafo, pos, estaciones_linea, transbordos):
+    """
+    Dibuja el grafo representante del sistema de metro sobre el mapa Folium
+    """
     # Crear un mapa base centrado en Buenos Aires
     mapa = folium.Map(location=[-34.6037, -58.3816], zoom_start=13)
 
@@ -320,8 +336,9 @@ def horario_metro_operativo(fecha, hora):
     else:
         inicio_operativo = datetime.strptime("05:00", "%H:%M").time()
         fin_operativo = datetime.strptime("22:20", "%H:%M").time()
+    # se toman las horas de apertura y cierre de los metros dependiendo de la fecha
 
-    if not (inicio_operativo <= hora <= fin_operativo):
+    if not (inicio_operativo <= hora <= fin_operativo):  # la hora introducida no es operativa
         return False, "El servicio de metro no está operativo en el horario seleccionado."
     if datetime.strptime("21:30", "%H:%M").time() <= hora <= fin_operativo:
         return True, "Es posible que el metro cierre pronto."
@@ -333,15 +350,12 @@ def validar_ruta(origen, destino):
     Valida la estacion origen y estacion destino introducidos por el usuario y devuelve un booleano, si hay un error
     con las entradas se devuelve ademas un mensaje de error.
     """
-    if not origen or not destino:
+    if not origen or not destino:  # aviso si el usuario no ha inscrito u origen o destino
         mensaje = "Debe seleccionar tanto la estación de origen como la de destino."
         return False, mensaje
-    if origen not in G.nodes or destino not in G.nodes:
+    if origen not in G.nodes or destino not in G.nodes:  # aviso si el usuario ha inscrito estaciones no existentes
         mensaje = "La estación de origen o la estación de destino no existen."
         return False, mensaje
-    if origen == destino:
-        mensaje = "Ya está en su destino"
-        return True, mensaje
     return True, ""
 
 
@@ -369,6 +383,7 @@ def mostrar_detalles(ruta, distancia_total, tiempo_trayecto, hora_llegada, trans
     detalles += f"Tiempo estimado: {tiempo_trayecto:.2f} minutos\n"
     detalles += f"Hora estimada de llegada: {hora_llegada.strftime('%H:%M')}\n"
 
+    # incluir los transbordos de la ruta en caso de que existan
     if transbordos:
         detalles += "\nTransbordos:\n"
         for origen, destino in transbordos:
@@ -393,8 +408,11 @@ def crear_mapa(ruta):
             return
 
     mapa = agregar_grafo_al_mapa(G, pos, estaciones_linea, transbordos)
+
+    # creamos una linea negra que muestre la ruta calculada
     folium.PolyLine(coords, color="black", weight=5).add_to(mapa)
 
+    # mostramos las estaciones de la ruta con un marker
     for estacion, coord in zip(ruta, coords):
         folium.Marker(coord, popup=estacion).add_to(mapa)
 
@@ -408,31 +426,31 @@ def calcular_ruta():
     """
     st.session_state["mostrar_ruta"] = False
     st.session_state["detalles_ruta"] = ""
-    st.session_state["mensaje_ruta"] = "" 
+    st.session_state["mensaje_ruta"] = ""
 
     origen = st.session_state.estacion_origen
     destino = st.session_state.estacion_destino
 
+    # validamos que el origen y el destino esten bien introducidos, de no serlo se deja de calcular la ruta
     ruta_valida, mensaje = validar_ruta(origen, destino)
     if not ruta_valida:
         st.session_state["mensaje_ruta"] = mensaje
         return
-    elif mensaje:
-        st.session_state["mensaje_ruta"] = mensaje
 
     hora = st.session_state.hora_var
     minuto = st.session_state.minuto_var
 
-    # primero hay que setear siempre las variables de fecha, hora y minuto a la hora actual con datetime
+    # probamos si las horas introducidas son correctas
     try:
         hora = int(hora)
         minuto = int(minuto)
         fecha_viaje = datetime.strptime(st.session_state.fecha_var, "%d-%m-%Y")
         hora_viaje = datetime.strptime(f"{hora:02d}:{minuto:02d}", "%H:%M").time()
 
+        # validamos que la hora/fecha sea operativa
         operativo, mensaje_horario = horario_metro_operativo(fecha_viaje, hora_viaje)
         if not operativo:
-            st.session_state["mensaje_ruta"] = mensaje_horario 
+            st.session_state["mensaje_ruta"] = mensaje_horario
             return
         elif mensaje_horario:
             st.session_state["mensaje_ruta"] = mensaje_horario 
@@ -445,6 +463,7 @@ def calcular_ruta():
         st.session_state["mensaje_ruta"] = f"Ha ocurrido un error inesperado: {str(e)}"
         return
 
+    # si todo ha sido validado se procede a calcular la ruta con el algoritmo A*
     try:
         ruta, longitud, tiempo_total = a_estrella(origen, destino, G)
         transbordos_ruta = detectar_transbordos_ruta(ruta)
@@ -453,10 +472,11 @@ def calcular_ruta():
         crear_mapa(ruta)
         mostrar_detalles(ruta, longitud, tiempo_total, hora_llegada, transbordos_ruta)
 
+        # si el origen y el destino son el mismo se manda un aviso al usuario
         st.session_state["mostrar_ruta"] = True
         if origen == destino:
             st.session_state["mensaje_ruta"] = "El origen y el destino son el mismo. No es necesario desplazarse."
-        else:
+        else:  # mensaje de éxito
             st.session_state["mensaje_ruta"] = "Ruta calculada con éxito."
 
     except nx.NetworkXNoPath:
