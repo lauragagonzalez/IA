@@ -280,7 +280,7 @@ def agregar_grafo_al_mapa(grafo, pos, estaciones_linea, transbordos):
         folium.Marker(
             location=coordenadas,
             popup=nodo,
-            icon=folium.Icon(color=node_colors[i],icon="subway", prefix='fa')
+            icon=folium.Icon(color=node_colors[i], icon="subway", prefix='fa')
         ).add_to(mapa)
 
     for idx, edge in enumerate(grafo.edges):
@@ -413,12 +413,6 @@ def calcular_ruta():
     origen = st.session_state.estacion_origen
     destino = st.session_state.estacion_destino
 
-    if origen == destino:
-        st.session_state["mensaje_ruta"] = "El origen y el destino son el mismo. No es necesario desplazarse."
-        mostrar_detalles([origen], 0, 0, datetime.now(), [])
-        return
-
-
     ruta_valida, mensaje = validar_ruta(origen, destino)
     if not ruta_valida:
         st.session_state["mensaje_ruta"] = mensaje
@@ -460,7 +454,10 @@ def calcular_ruta():
         mostrar_detalles(ruta, longitud, tiempo_total, hora_llegada, transbordos_ruta)
 
         st.session_state["mostrar_ruta"] = True
-        st.session_state["mensaje_ruta"] = "Ruta calculada con éxito."
+        if origen == destino:
+            st.session_state["mensaje_ruta"] = "El origen y el destino son el mismo. No es necesario desplazarse."
+        else:
+            st.session_state["mensaje_ruta"] = "Ruta calculada con éxito."
 
     except nx.NetworkXNoPath:
         st.session_state["mensaje_ruta"] = "No existe una ruta entre las estaciones seleccionadas."
@@ -497,8 +494,8 @@ def main():
 
     st.sidebar.header("Configuración de la ruta")
 
-    estacion_origen = st.sidebar.selectbox("Estación de origen", list(G.nodes()))
-    estacion_destino = st.sidebar.selectbox("Estación de destino", list(G.nodes()))
+    estacion_origen = st.sidebar.selectbox("Estación de origen", [None] + list(G.nodes()))
+    estacion_destino = st.sidebar.selectbox("Estación de destino", [None] + list(G.nodes()))
     st.session_state.estacion_origen = estacion_origen
     st.session_state.estacion_destino = estacion_destino
 
