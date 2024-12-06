@@ -474,16 +474,17 @@ def calcular_ruta():
 
         # si el origen y el destino son el mismo se manda un aviso al usuario
         st.session_state["mostrar_ruta"] = True
-        if origen == destino:
-            st.session_state["mensaje_ruta"] = "El origen y el destino son el mismo. No es necesario desplazarse."
-        else:  # mensaje de éxito
-            st.session_state["mensaje_ruta"] = "Ruta calculada con éxito."
 
     except nx.NetworkXNoPath:
         st.session_state["mensaje_ruta"] = "No existe una ruta entre las estaciones seleccionadas."
 
     except Exception as e:
         st.session_state["mensaje_ruta"] = f"Ha ocurrido un error: {str(e)}"
+        
+    if origen == destino:
+        st.session_state["mensaje_ruta"] = "El origen y el destino son el mismo. No es necesario desplazarse."
+    else:  # mensaje de éxito
+        st.session_state["mensaje_ruta"] = "Ruta calculada con éxito."
 
 
 # Iniciar la interfaz con Streamlit
